@@ -41,6 +41,12 @@ xattr -dr com.apple.quarantine "/Applications/ObsidianQuickNoteTask.app"
 
 4. Launch the app and choose your Obsidian destination folder.
 
+Or install/update automatically in one command:
+
+```bash
+bash <(curl -fsSL https://raw.githubusercontent.com/blamouche/obsidian-quick-note-task/main/scripts/install_latest.sh)
+```
+
 ## Latest DMG Download
 
 <!-- DMG_LINK_START -->
