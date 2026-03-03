@@ -87,6 +87,7 @@ public final class StatusBarController: NSObject {
 
     private let captureController: CaptureWindowController
     private let settingsController: SettingsController
+    private let appVersionLabel: String
     private var cachedAvailabilityState: CaptureAvailabilityState
     #if canImport(AppKit)
     private var activeModalActionHandler: InlineModalActionHandler?
@@ -104,6 +105,7 @@ public final class StatusBarController: NSObject {
                 settingsController: SettingsController = .init()) {
         self.captureController = captureController
         self.settingsController = settingsController
+        self.appVersionLabel = Self.resolveAppVersionLabel()
         self.cachedAvailabilityState = Self.availabilityState(for: settingsController.destinationReadiness())
         super.init()
     }
@@ -154,7 +156,7 @@ public final class StatusBarController: NSObject {
     public func refreshMenuState() {
         let state = currentAvailabilityState()
         #if canImport(AppKit)
-        menuStatusItem?.title = state.statusMessage
+        menuStatusItem?.title = "\(state.statusMessage) • \(appVersionLabel)"
         menuQuickNoteItem?.isEnabled = state.quickNoteEnabled
         menuTaskItem?.isEnabled = state.taskEnabled
         menuSettingsItem?.title = state.settingsTitle
@@ -220,6 +222,24 @@ public final class StatusBarController: NSObject {
                 visualRole: .disabled
             )
         }
+    }
+
+    private static func resolveAppVersionLabel() -> String {
+        let shortVersion = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String
+        let buildVersion = Bundle.main.object(forInfoDictionaryKey: "CFBundleVersion") as? String
+
+        if let shortVersion, !shortVersion.isEmpty {
+            if let buildVersion, !buildVersion.isEmpty, buildVersion != shortVersion {
+                return "v\(shortVersion) (\(buildVersion))"
+            }
+            return "v\(shortVersion)"
+        }
+
+        if let buildVersion, !buildVersion.isEmpty {
+            return "v\(buildVersion)"
+        }
+
+        return "vdev"
     }
 
     #if canImport(AppKit)
