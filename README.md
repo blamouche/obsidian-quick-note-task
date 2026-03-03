@@ -46,8 +46,8 @@ this workflow.
 
 <!-- DMG_LINK_START -->
 
-Latest DMG: not published yet
-Last update: n/a
+Latest DMG: [https://github.com/blamouche/obsidian-quick-note-task/releases/download/0.0.3/ObsidianQuickNoteTask-0.0.3.dmg](https://github.com/blamouche/obsidian-quick-note-task/releases/download/0.0.3/ObsidianQuickNoteTask-0.0.3.dmg)
+Last update: 2026-03-03 (UTC)
 <!-- DMG_LINK_END -->
 
 ### Optional customizations
