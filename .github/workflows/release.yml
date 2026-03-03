@@ -1,0 +1,101 @@
+name: Build DMG
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build-dmg:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: macos-14
+    env:
+      APP_BUNDLE_NAME: ObsidianQuickNoteTask
+      EXECUTABLE_NAME: ObsidianQuickNoteTaskApp
+      BUNDLE_ID: com.benoitlamouche.obsidianquicknotetask
+      DIST_DIR: ${{ github.workspace }}/dist
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Compute build metadata
+        id: meta
+        run: |
+          VERSION="0.0.${GITHUB_RUN_NUMBER}"
+          DMG_NAME="ObsidianQuickNoteTask-${VERSION}.dmg"
+          echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
+          echo "dmg_name=$DMG_NAME" >> "$GITHUB_OUTPUT"
+
+      - name: Build .app bundle
+        env:
+          RELEASE_VERSION: ${{ steps.meta.outputs.version }}
+        run: ./scripts/release/build_app_bundle.sh
+
+      - name: Create DMG
+        id: dmg
+        run: |
+          APP_PATH="$DIST_DIR/$APP_BUNDLE_NAME.app"
+          DMG_PATH="$DIST_DIR/${{ steps.meta.outputs.dmg_name }}"
+          ./scripts/release/create_dmg.sh "$APP_PATH" "$DMG_PATH"
+          echo "path=$DMG_PATH" >> "$GITHUB_OUTPUT"
+
+      - name: Upload DMG artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: obsidian-quick-note-task-dmg
+          path: ${{ steps.dmg.outputs.path }}
+
+      - name: Publish GitHub release asset
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.meta.outputs.version }}
+          name: DMG ${{ steps.meta.outputs.version }}
+          generate_release_notes: false
+          files: ${{ steps.dmg.outputs.path }}
+
+      - name: Update README with DMG link
+        env:
+          REPO: ${{ github.repository }}
+          VERSION: ${{ steps.meta.outputs.version }}
+          DMG_NAME: ${{ steps.meta.outputs.dmg_name }}
+        run: |
+          DMG_URL="https://github.com/${REPO}/releases/download/${VERSION}/${DMG_NAME}"
+          TODAY="$(date -u +%Y-%m-%d)"
+
+          awk -v url="$DMG_URL" -v date="$TODAY" '
+            /<!-- DMG_LINK_START -->/ {
+              print
+              print ""
+              print "Latest DMG: [" url "](" url ")"
+              print "Last update: " date " (UTC)"
+              skip=1
+              next
+            }
+            /<!-- DMG_LINK_END -->/ {
+              skip=0
+              print
+              next
+            }
+            skip != 1 { print }
+          ' README.md > README.md.tmp
+
+          mv README.md.tmp README.md
+
+      - name: Commit README update
+        run: |
+          if git diff --quiet -- README.md; then
+            echo "README already up to date"
+            exit 0
+          fi
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add README.md
+          git commit -m "docs: update DMG link in README [skip ci]"
+          git push

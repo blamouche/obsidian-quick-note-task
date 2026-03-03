@@ -27,3 +27,34 @@ daily note file (`YYYY-MM-DD - Note.md`).
 - `swift test` currently fails in this environment due to missing `XCTest`
   module in the active Swift toolchain. The test files are present under
   `tests/` and ready to run once the toolchain exposes XCTest.
+
+## CI/CD release automation
+
+This repository includes a GitHub Actions pipeline in
+`.github/workflows/release.yml`, triggered on every push to `main`:
+
+- Build a production `.app` bundle from SwiftPM executable
+- Package the app into a `.dmg`
+- Upload the `.dmg` as a workflow artifact
+- Publish the `.dmg` in GitHub Releases
+- Update this README with the latest release URL
+
+No signing, notarization, certificate import, or Sparkle integration is used in
+this workflow.
+
+### Latest DMG download
+
+<!-- DMG_LINK_START -->
+
+Latest DMG: not published yet
+Last update: n/a
+<!-- DMG_LINK_END -->
+
+### Optional customizations
+
+Workflow env defaults:
+
+- Bundle ID: `com.benoitlamouche.obsidianquicknotetask`
+- App bundle name: `ObsidianQuickNoteTask`
+
+If needed, adjust values in `.github/workflows/release.yml`.
