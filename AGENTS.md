@@ -9,6 +9,8 @@ Auto-generated from all feature plans. Last updated: 2026-03-03
 - Local filesystem in user-selected Obsidian vault (existing markdown append flow) (003-ux-productivity)
 - Swift 6.x (Swift tools 6.0, compatible codebase Swift 6.2) + AppKit (fenêtres/menu/status UI), Foundation (états locaux), modules domain/services existants (004-ui-visual-refresh)
 - Système de fichiers local (vault Obsidian déjà configuré; aucun nouveau stockage) (004-ui-visual-refresh)
+- Swift 6.x (Swift tools 6.0, compatible codebase Swift 6.2) + AppKit (window/menu controls), Foundation (filesystem/path state), UniformTypeIdentifiers (folder picking), modules domain/services existants (005-settings-vault-default-folder)
+- Système de fichiers local dans le vault Obsidian utilisateur (aucun nouveau stockage) (005-settings-vault-default-folder)
 
 - Swift 5.10 + AppKit (status bar UI), Foundation (filesystem/date), UniformTypeIdentifiers (folder picker) (001-menubar-obsidian-capture)
 
@@ -28,9 +30,9 @@ tests/
 Swift 5.10: Follow standard conventions
 
 ## Recent Changes
+- 005-settings-vault-default-folder: Added Swift 6.x (Swift tools 6.0, compatible codebase Swift 6.2) + AppKit (window/menu controls), Foundation (filesystem/path state), UniformTypeIdentifiers (folder picking), modules domain/services existants
 - 004-ui-visual-refresh: Added Swift 6.x (Swift tools 6.0, compatible codebase Swift 6.2) + AppKit (fenêtres/menu/status UI), Foundation (états locaux), modules domain/services existants
 - 003-ux-productivity: Added Swift 6.2 + AppKit (menu/status UX), Foundation (filesystem/date), existing domain/services modules
-- 002-task-date-picker: Added Swift 6.2 + AppKit (menu bar UI, date picker control), Foundation (date serialization)
 
 
 <!-- MANUAL ADDITIONS START -->

@@ -40,7 +40,11 @@ final class CaptureFeedbackContractTests: XCTestCase {
         let suite = "test.contract.feedback.success.\(UUID().uuidString)"
         let store = makeStore(suite: suite)
         let settings = SettingsController(destinationStore: store)
-        try settings.selectDestination(try makeTempDir())
+        let vault = try makeTempDir()
+        let folder = vault.appendingPathComponent("Inbox", isDirectory: true)
+        try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+        try settings.selectVault(vault)
+        try settings.selectDefaultFolder(folder)
         let sut = CaptureWindowController(destinationStore: store)
 
         let success = sut.submitQuickNote("hello")

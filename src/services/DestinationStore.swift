@@ -17,13 +17,50 @@ public enum DestinationStoreError: Error, LocalizedError {
 public final class DestinationStore {
     private let defaults: UserDefaults
     private let key: String
+    private let vaultKey: String
+    private let defaultFolderKey: String
 
-    public init(defaults: UserDefaults = .standard, key: String = "obsidian.destination.bookmark") {
+    public init(defaults: UserDefaults = .standard,
+                key: String = "obsidian.destination.bookmark",
+                vaultKey: String = "obsidian.vault.bookmark",
+                defaultFolderKey: String = "obsidian.default-folder.bookmark") {
         self.defaults = defaults
         self.key = key
+        self.vaultKey = vaultKey
+        self.defaultFolderKey = defaultFolderKey
     }
 
     public func saveDestination(url: URL) throws {
+        try saveDefaultFolderURL(url)
+    }
+
+    public func saveVaultURL(_ url: URL) throws {
+        try saveBookmark(url: url, key: vaultKey)
+    }
+
+    public func saveDefaultFolderURL(_ url: URL) throws {
+        try saveBookmark(url: url, key: defaultFolderKey)
+    }
+
+    public func loadVaultURL() -> URL? {
+        loadBookmark(forKey: vaultKey)
+    }
+
+    public func loadDefaultFolderURL() -> URL? {
+        loadBookmark(forKey: defaultFolderKey) ?? loadBookmark(forKey: key)
+    }
+
+    public func loadDestinationURL() -> URL? {
+        loadDefaultFolderURL()
+    }
+
+    public func clear() {
+        defaults.removeObject(forKey: key)
+        defaults.removeObject(forKey: vaultKey)
+        defaults.removeObject(forKey: defaultFolderKey)
+    }
+
+    private func saveBookmark(url: URL, key: String) throws {
         let isDirectory = (try? url.resourceValues(forKeys: [.isDirectoryKey]).isDirectory) ?? false
         guard url.isFileURL, isDirectory else {
             throw DestinationStoreError.invalidDirectory
@@ -43,7 +80,7 @@ public final class DestinationStore {
         }
     }
 
-    public func loadDestinationURL() -> URL? {
+    private func loadBookmark(forKey key: String) -> URL? {
         guard let data = defaults.data(forKey: key) else {
             return nil
         }
@@ -58,9 +95,5 @@ public final class DestinationStore {
         guard let path = String(data: data, encoding: .utf8) else { return nil }
         return URL(fileURLWithPath: path)
         #endif
-    }
-
-    public func clear() {
-        defaults.removeObject(forKey: key)
     }
 }

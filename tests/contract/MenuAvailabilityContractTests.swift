@@ -26,12 +26,16 @@ final class MenuAvailabilityContractTests: XCTestCase {
         XCTAssertFalse(state.quickNoteEnabled)
         XCTAssertFalse(state.taskEnabled)
         XCTAssertEqual(state.statusKind, .setupRequired)
-        XCTAssertEqual(state.settingsTitle, "Configurer la destination...")
+        XCTAssertEqual(state.settingsTitle, "Configure Settings...")
     }
 
     func testReadyStateEnablesCaptureActions() throws {
         let (status, _, settings) = makeControllers(suite: "test.contract.menu.ready.\(UUID().uuidString)")
-        try settings.selectDestination(try makeTempDir())
+        let vault = try makeTempDir()
+        let folder = vault.appendingPathComponent("Inbox", isDirectory: true)
+        try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+        try settings.selectVault(vault)
+        try settings.selectDefaultFolder(folder)
         let state = status.currentAvailabilityState()
 
         XCTAssertTrue(state.quickNoteEnabled)
@@ -41,15 +45,18 @@ final class MenuAvailabilityContractTests: XCTestCase {
 
     func testRecoveryStateDisablesActionsAndPromotesReconfiguration() throws {
         let (status, _, settings) = makeControllers(suite: "test.contract.menu.recovery.\(UUID().uuidString)")
-        let dir = try makeTempDir()
-        try settings.selectDestination(dir)
-        try FileManager.default.removeItem(at: dir)
+        let vault = try makeTempDir()
+        let folder = vault.appendingPathComponent("Inbox", isDirectory: true)
+        try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+        try settings.selectVault(vault)
+        try settings.selectDefaultFolder(folder)
+        try FileManager.default.removeItem(at: folder)
         let state = status.currentAvailabilityState()
 
         XCTAssertFalse(state.quickNoteEnabled)
         XCTAssertFalse(state.taskEnabled)
         XCTAssertEqual(state.statusKind, .recoveryRequired)
-        XCTAssertEqual(state.settingsTitle, "Reconfigurer la destination...")
+        XCTAssertEqual(state.settingsTitle, "Reconfigure Settings...")
     }
 
     func testDisabledActionBlocksKeyboardEquivalentPath() {
@@ -58,6 +65,6 @@ final class MenuAvailabilityContractTests: XCTestCase {
         status.handle(.quickNote)
 
         XCTAssertNotNil(capture.lastErrorMessage)
-        XCTAssertTrue(capture.lastErrorMessage?.contains("Configure") ?? false)
+        XCTAssertTrue(capture.lastErrorMessage?.contains("Vault") ?? false)
     }
 }

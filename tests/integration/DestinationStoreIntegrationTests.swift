@@ -15,13 +15,26 @@ final class DestinationStoreIntegrationTests: XCTestCase {
 
         let dir = try makeTempDir()
         let first = DestinationStore(defaults: defaults, key: "destination")
-        try first.saveDestination(url: dir)
+        try first.saveDefaultFolderURL(dir)
 
         let second = DestinationStore(defaults: defaults, key: "destination")
-        let loaded = second.loadDestinationURL()
+        let loaded = second.loadDefaultFolderURL()
 
         XCTAssertNotNil(loaded)
         XCTAssertEqual(loaded?.path, dir.path)
+    }
+
+    func testPersistsVaultAcrossStoreInstances() throws {
+        let suiteName = "test.destination.vault.\(UUID().uuidString)"
+        let defaults = UserDefaults(suiteName: suiteName)!
+        defer { defaults.removePersistentDomain(forName: suiteName) }
+
+        let vault = try makeTempDir()
+        let first = DestinationStore(defaults: defaults, key: "destination")
+        try first.saveVaultURL(vault)
+
+        let second = DestinationStore(defaults: defaults, key: "destination")
+        XCTAssertEqual(second.loadVaultURL()?.path, vault.path)
     }
 
     func testRejectsInaccessibleDestinationInput() throws {
@@ -33,7 +46,8 @@ final class DestinationStoreIntegrationTests: XCTestCase {
         FileManager.default.createFile(atPath: fileURL.path, contents: Data(), attributes: nil)
 
         let store = DestinationStore(defaults: defaults, key: "destination")
-        XCTAssertThrowsError(try store.saveDestination(url: fileURL))
+        XCTAssertThrowsError(try store.saveDefaultFolderURL(fileURL))
+        XCTAssertThrowsError(try store.saveVaultURL(fileURL))
     }
 
     func testDestinationSelectionPersistsAfterFolderIconRemoval() throws {

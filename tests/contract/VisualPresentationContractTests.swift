@@ -48,6 +48,6 @@ final class VisualPresentationContractTests: XCTestCase {
 
         XCTAssertFalse(state.quickNoteEnabled)
         XCTAssertEqual(state.visualRole, .disabled)
-        XCTAssertTrue(state.statusMessage.contains("[Indisponible]"))
+        XCTAssertTrue(state.statusMessage.contains("[Unavailable]"))
     }
 }

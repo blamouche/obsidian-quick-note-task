@@ -39,7 +39,9 @@
 xattr -dr com.apple.quarantine "/Applications/ObsidianQuickNoteTask.app"
 ```
 
-4. Launch the app and choose your Obsidian destination folder.
+4. Launch the app, open `Settings`, then configure:
+   - your local Obsidian vault,
+   - your default folder where notes/tasks are created.
 
 Or install/update automatically in one command:
 

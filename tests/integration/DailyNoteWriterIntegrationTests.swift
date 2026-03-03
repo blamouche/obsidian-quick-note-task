@@ -90,7 +90,8 @@ final class DailyNoteWriterIntegrationTests: XCTestCase {
         let store = DestinationStore(defaults: defaults, key: "destination")
         let settings = SettingsController(destinationStore: store)
         let dir = try makeTempDir()
-        try settings.selectDestination(dir)
+        try settings.selectVault(dir)
+        try settings.selectDefaultFolder(dir)
         let capture = CaptureWindowController(destinationStore: store)
 
         let result = capture.submitQuickNote("From configured capture flow")
@@ -107,7 +108,8 @@ final class DailyNoteWriterIntegrationTests: XCTestCase {
         let store = DestinationStore(defaults: defaults, key: "destination")
         let settings = SettingsController(destinationStore: store)
         let dir = try makeTempDir()
-        try settings.selectDestination(dir)
+        try settings.selectVault(dir)
+        try settings.selectDefaultFolder(dir)
         let capture = CaptureWindowController(destinationStore: store)
         let dueDate = Calendar(identifier: .gregorian).date(from: DateComponents(year: 2026, month: 3, day: 10))
 
@@ -127,7 +129,8 @@ final class DailyNoteWriterIntegrationTests: XCTestCase {
         let store = DestinationStore(defaults: defaults, key: "destination")
         let settings = SettingsController(destinationStore: store)
         let destination = try makeTempDir()
-        try settings.selectDestination(destination)
+        try settings.selectVault(destination)
+        try settings.selectDefaultFolder(destination)
         let capture = CaptureWindowController(destinationStore: store)
 
         XCTAssertFalse(capture.visualProfile().folderAffordance.iconVisible)
