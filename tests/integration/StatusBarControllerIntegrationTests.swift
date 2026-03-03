@@ -145,4 +145,81 @@ final class StatusBarControllerIntegrationTests: XCTestCase {
         XCTAssertEqual(status.dropdownTaskItemsForCurrentState().count, 1)
         XCTAssertEqual(status.dropdownTaskItemsForCurrentState().first?.title, "Keep")
     }
+
+    func testDropdownMenuTitleShowsRecurringPictoForRecurringTask() throws {
+        let fixedDate = ISO8601DateFormatter().date(from: "2026-03-03T10:00:00Z")!
+        let scanner = VaultTaskScanner(dateProvider: FixedDateProvider(fixedDate))
+        let suite = "test.status.dropdown.recurringpicto.\(UUID().uuidString)"
+        let defaults = UserDefaults(suiteName: suite)!
+        defaults.removePersistentDomain(forName: suite)
+        let store = DestinationStore(defaults: defaults, key: "destination")
+        let capture = CaptureWindowController(destinationStore: store)
+        let settings = SettingsController(destinationStore: store)
+        let status = StatusBarController(captureController: capture, settingsController: settings, taskScanner: scanner)
+
+        let vault = try makeTempDir()
+        let folder = vault.appendingPathComponent("Inbox", isDirectory: true)
+        try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+        try "- [ ] Recur 📅 2026-03-03 🔁 every day"
+            .data(using: .utf8)?
+            .write(to: vault.appendingPathComponent("tasks.md"))
+        try settings.selectVault(vault)
+        try settings.selectDefaultFolder(folder)
+
+        let task = try XCTUnwrap(status.dropdownTaskItemsForCurrentState().first)
+        let recurrenceIcon = status.dropdownRecurrenceIcon(for: task)
+
+        XCTAssertEqual(recurrenceIcon, "↻")
+    }
+
+    func testDropdownMenuTitleMasksURLsFromTaskTitle() throws {
+        let fixedDate = ISO8601DateFormatter().date(from: "2026-03-03T10:00:00Z")!
+        let scanner = VaultTaskScanner(dateProvider: FixedDateProvider(fixedDate))
+        let suite = "test.status.dropdown.urlmask.\(UUID().uuidString)"
+        let defaults = UserDefaults(suiteName: suite)!
+        defaults.removePersistentDomain(forName: suite)
+        let store = DestinationStore(defaults: defaults, key: "destination")
+        let capture = CaptureWindowController(destinationStore: store)
+        let settings = SettingsController(destinationStore: store)
+        let status = StatusBarController(captureController: capture, settingsController: settings, taskScanner: scanner)
+
+        let vault = try makeTempDir()
+        let folder = vault.appendingPathComponent("Inbox", isDirectory: true)
+        try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+        try "- [ ] Fix bug https://example.com/ticket/123 📅 2026-03-03"
+            .data(using: .utf8)?
+            .write(to: vault.appendingPathComponent("tasks.md"))
+        try settings.selectVault(vault)
+        try settings.selectDefaultFolder(folder)
+
+        let task = try XCTUnwrap(status.dropdownTaskItemsForCurrentState().first)
+        let menuTitle = status.dropdownMenuTitle(for: task)
+
+        XCTAssertFalse(menuTitle.contains("http://"))
+        XCTAssertFalse(menuTitle.contains("https://"))
+    }
+
+    func testDropdownLateIconShownForOverdueTask() throws {
+        let fixedDate = ISO8601DateFormatter().date(from: "2026-03-03T10:00:00Z")!
+        let scanner = VaultTaskScanner(dateProvider: FixedDateProvider(fixedDate))
+        let suite = "test.status.dropdown.lateicon.\(UUID().uuidString)"
+        let defaults = UserDefaults(suiteName: suite)!
+        defaults.removePersistentDomain(forName: suite)
+        let store = DestinationStore(defaults: defaults, key: "destination")
+        let capture = CaptureWindowController(destinationStore: store)
+        let settings = SettingsController(destinationStore: store)
+        let status = StatusBarController(captureController: capture, settingsController: settings, taskScanner: scanner)
+
+        let vault = try makeTempDir()
+        let folder = vault.appendingPathComponent("Inbox", isDirectory: true)
+        try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+        try "- [ ] Late task 📅 2026-03-02"
+            .data(using: .utf8)?
+            .write(to: vault.appendingPathComponent("tasks.md"))
+        try settings.selectVault(vault)
+        try settings.selectDefaultFolder(folder)
+
+        let task = try XCTUnwrap(status.dropdownTaskItemsForCurrentState().first)
+        XCTAssertEqual(status.dropdownLateIcon(for: task), "⚠︎")
+    }
 }

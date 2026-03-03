@@ -32,6 +32,26 @@
 - UX model: menu bar first, configuration-aware actions
 - Storage: local filesystem only (your Obsidian vault)
 
+## Recurring Tasks
+
+Recurring tasks are detected with a `🔁` rule at the end of a task line.
+
+Supported recurrence rules:
+
+- `🔁 every day` or `🔁 daily`
+- `🔁 every week` or `🔁 weekly`
+- `🔁 every month` or `🔁 monthly`
+- `🔁 every year` or `🔁 yearly`
+- `🔁 every N days` (example: `🔁 every 3 days`)
+
+Example:
+
+```md
+- [ ] Pay rent 📅 2026-03-03 🔁 every month
+```
+
+When a recurring task is completed from the dropdown, the app marks it done and appends the next occurrence automatically.
+
 ## Quick Start
 
 1. Download the latest DMG from the section below.

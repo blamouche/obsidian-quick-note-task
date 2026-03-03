@@ -41,9 +41,13 @@ public final class DailyNoteWriter {
         return try appendRendered(rendered, destinationDirectory: destinationDirectory, date: date)
     }
 
-    public func appendTask(title: String, dueDate: Date?, destinationDirectory: URL, date: Date) throws -> URL {
+    public func appendTask(title: String,
+                           dueDate: Date?,
+                           recurrenceRule: String? = nil,
+                           destinationDirectory: URL,
+                           date: Date) throws -> URL {
         let normalizedTitle = try Validation.validateTaskTitle(title)
-        let rendered = formatter.formatTask(title: normalizedTitle, dueDate: dueDate)
+        let rendered = formatter.formatTask(title: normalizedTitle, dueDate: dueDate, recurrenceRule: recurrenceRule)
         return try appendRendered(rendered, destinationDirectory: destinationDirectory, date: date)
     }
 

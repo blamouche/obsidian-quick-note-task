@@ -28,6 +28,12 @@ final class MarkdownFormatterTests: XCTestCase {
         XCTAssertTrue(output.hasPrefix("- [ ] "))
     }
 
+    func testTaskFormattingWithRecurrenceRule() {
+        let formatter = MarkdownFormatter()
+        let output = formatter.formatTask(title: "Recurring", dueDate: nil, recurrenceRule: "every week")
+        XCTAssertEqual(output, "- [ ] Recurring 🔁 every week")
+    }
+
     func testRecurrenceRuleParsingComputesNextDate() {
         let scanner = VaultTaskScanner()
         let recurrence = scanner.parseRecurrence(from: "- [ ] Task 📅 2026-03-03 🔁 every month")

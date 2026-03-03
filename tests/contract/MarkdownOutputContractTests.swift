@@ -31,6 +31,12 @@ final class MarkdownOutputContractTests: XCTestCase {
         XCTAssertTrue(output.contains("📅 2026-03-10"))
     }
 
+    func testTaskContractRecurrenceSerialization() {
+        let formatter = MarkdownFormatter()
+        let output = formatter.formatTask(title: "Task recurring", dueDate: nil, recurrenceRule: "every month")
+        XCTAssertTrue(output.contains("🔁 every month"))
+    }
+
     func testQuickNoteContractContainsHeader() {
         let formatter = MarkdownFormatter()
         let output = formatter.formatQuickNote(text: "texte")

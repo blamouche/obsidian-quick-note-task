@@ -54,6 +54,16 @@ final class DailyNoteWriterIntegrationTests: XCTestCase {
         XCTAssertTrue(content.contains("- [ ] Task date picker 📅 2026-03-10"))
     }
 
+    func testTaskWithRecurrenceRuleIsAppended() throws {
+        let dir = try makeTempDir()
+        let writer = DailyNoteWriter()
+        let date = Calendar(identifier: .gregorian).date(from: DateComponents(year: 2026, month: 3, day: 3))!
+
+        let target = try writer.appendTask(title: "Task recurrence picker", dueDate: nil, recurrenceRule: "every week", destinationDirectory: dir, date: date)
+        let content = try String(contentsOf: target, encoding: .utf8)
+        XCTAssertTrue(content.contains("- [ ] Task recurrence picker 🔁 every week"))
+    }
+
     func testTaskUsesUpdatedSelectedDueDateBeforeSubmit() throws {
         let dir = try makeTempDir()
         let writer = DailyNoteWriter()

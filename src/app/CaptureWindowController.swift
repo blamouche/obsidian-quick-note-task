@@ -69,7 +69,7 @@ public final class CaptureWindowController {
     }
 
     @discardableResult
-    public func submitTask(title: String, dueDate: Date?) -> Bool {
+    public func submitTask(title: String, dueDate: Date?, recurrenceRule: String? = nil) -> Bool {
         guard let destination = destinationStore.loadDestinationURL() else {
             lastErrorMessage = "Destination folder is not configured."
             preservedDraft = title
@@ -80,6 +80,7 @@ public final class CaptureWindowController {
         do {
             let file = try writer.appendTask(title: title,
                                              dueDate: dueDate,
+                                             recurrenceRule: recurrenceRule,
                                              destinationDirectory: destination,
                                              date: dateProvider.now())
             lastOutputFile = file
@@ -96,10 +97,10 @@ public final class CaptureWindowController {
     }
 
     @discardableResult
-    public func submitTask(title: String, dueDateInput: String?) -> Bool {
+    public func submitTask(title: String, dueDateInput: String?, recurrenceRule: String? = nil) -> Bool {
         do {
             let parsed = try Validation.parseOptionalDueDate(dueDateInput)
-            return submitTask(title: title, dueDate: parsed)
+            return submitTask(title: title, dueDate: parsed, recurrenceRule: recurrenceRule)
         } catch {
             lastErrorMessage = error.localizedDescription
             preservedDraft = title

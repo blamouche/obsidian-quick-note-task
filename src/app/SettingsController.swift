@@ -199,7 +199,7 @@ public final class SettingsController: NSObject {
         window.center()
         window.isReleasedWhenClosed = false
 
-        let content = NSView(frame: window.contentRect(forFrameRect: window.frame))
+        let content = WindowBackgroundView(frame: window.contentRect(forFrameRect: window.frame))
 
         let titleLabel = makeLabel(
             "Configuration",
