@@ -1,6 +1,9 @@
 import Foundation
 #if canImport(AppKit)
 import AppKit
+#if canImport(WebKit)
+import WebKit
+#endif
 #endif
 
 public struct SettingsVisualProfile: Equatable {
@@ -62,6 +65,9 @@ public final class SettingsController: NSObject {
     private weak var defaultFolderPathLabel: NSTextField?
     private weak var exclusionTextField: NSTextField?
     private weak var statusLabel: NSTextField?
+    #if canImport(WebKit)
+    private weak var embeddedFormWebView: WKWebView?
+    #endif
     private var refreshHandler: (() -> Void)?
     #endif
 
@@ -186,7 +192,7 @@ public final class SettingsController: NSObject {
 
         let profile = visualProfile()
         let width: CGFloat = 640
-        let height: CGFloat = 380
+        let height: CGFloat = 760
         let inset = CGFloat(profile.spacing.windowPadding)
 
         let window = NSWindow(
@@ -243,6 +249,22 @@ public final class SettingsController: NSObject {
         exclusionInput.target = self
         exclusionInput.action = #selector(onExclusionTextChanged(_:))
 
+        #if canImport(WebKit)
+        let subscribeDivider = NSBox(frame: NSRect(x: inset, y: exclusionInput.frame.minY - CGFloat(profile.spacing.sectionGap) - 12, width: width - (inset * 2), height: 1))
+        subscribeDivider.boxType = .separator
+
+        let subscribeTitle = makeLabel("Subscribe for updates", size: CGFloat(profile.typography.label), weight: .semibold, color: .labelColor)
+        subscribeTitle.frame = NSRect(x: inset, y: subscribeDivider.frame.minY - 26, width: width - (inset * 2), height: 20)
+
+        let formWidth: CGFloat = 420
+        let formHeight: CGFloat = 190
+        let formX = (width - formWidth) / 2
+        let formY = subscribeTitle.frame.minY - CGFloat(profile.spacing.fieldGap) - formHeight
+        let webView = WKWebView(frame: NSRect(x: formX, y: formY, width: formWidth, height: formHeight))
+        webView.setValue(false, forKey: "drawsBackground")
+        webView.loadHTMLString(Self.embeddedSettingsFormHTML, baseURL: nil)
+        #endif
+
         let statusLabel = makeLabel("", size: CGFloat(profile.typography.label), weight: .regular, color: .secondaryLabelColor)
         statusLabel.frame = NSRect(x: inset, y: inset, width: width - inset * 2, height: 20)
 
@@ -255,6 +277,11 @@ public final class SettingsController: NSObject {
         content.addSubview(chooseFolderButton)
         content.addSubview(exclusionTitle)
         content.addSubview(exclusionInput)
+        #if canImport(WebKit)
+        content.addSubview(subscribeDivider)
+        content.addSubview(subscribeTitle)
+        content.addSubview(webView)
+        #endif
         content.addSubview(statusLabel)
 
         window.contentView = content
@@ -265,6 +292,9 @@ public final class SettingsController: NSObject {
         self.defaultFolderPathLabel = folderPath
         self.exclusionTextField = exclusionInput
         self.statusLabel = statusLabel
+        #if canImport(WebKit)
+        self.embeddedFormWebView = webView
+        #endif
 
         updateWindowStateLabels()
         window.makeKeyAndOrderFront(nil)
@@ -359,6 +389,9 @@ extension SettingsController: NSWindowDelegate {
         defaultFolderPathLabel = nil
         exclusionTextField = nil
         statusLabel = nil
+        #if canImport(WebKit)
+        embeddedFormWebView = nil
+        #endif
     }
 }
 

@@ -43,11 +43,12 @@ public struct CaptureAvailabilityState: Equatable {
     }
 }
 
-public enum StatusAction {
-    case quickNote
-    case task
-    case settings
-}
+    public enum StatusAction {
+        case quickNote
+        case task
+        case settings
+        case github
+    }
 
 @MainActor
 public final class StatusBarController: NSObject {
@@ -101,6 +102,7 @@ public final class StatusBarController: NSObject {
     private var menuDropdownTaskActionHandlers: [DropdownTaskActionHandler] = []
     private var menuDropdownTaskViewsByID: [String: NSView] = [:]
     private var menuSettingsItem: NSMenuItem?
+    private var menuGithubItem: NSMenuItem?
     #endif
 
     public init(captureController: CaptureWindowController = .init(),
@@ -136,6 +138,7 @@ public final class StatusBarController: NSObject {
         let quickNoteEntry = NSMenuItem(title: "Quick Note", action: #selector(onQuickNote), keyEquivalent: "n")
         let taskEntry = NSMenuItem(title: "Task", action: #selector(onTask), keyEquivalent: "t")
         let settingsEntry = NSMenuItem(title: "Settings", action: #selector(onSettings), keyEquivalent: ",")
+        let githubEntry = NSMenuItem(title: "Github", action: #selector(onGithub), keyEquivalent: "g")
         let tasksDividerTop = NSMenuItem.separator()
         let tasksDividerBottom = NSMenuItem.separator()
         menu.addItem(quickNoteEntry)
@@ -143,6 +146,7 @@ public final class StatusBarController: NSObject {
         menu.addItem(tasksDividerTop)
         menu.addItem(tasksDividerBottom)
         menu.addItem(settingsEntry)
+        menu.addItem(githubEntry)
         menu.addItem(.separator())
         menu.addItem(NSMenuItem(title: "Quit", action: #selector(onQuit), keyEquivalent: "q"))
 
@@ -159,6 +163,7 @@ public final class StatusBarController: NSObject {
         menuTasksDividerTop = tasksDividerTop
         menuTasksDividerBottom = tasksDividerBottom
         menuSettingsItem = settingsEntry
+        menuGithubItem = githubEntry
         refreshMenuState()
         #endif
     }
@@ -212,6 +217,12 @@ public final class StatusBarController: NSObject {
             _ = captureController.submitTask(title: "Task capture placeholder", dueDate: nil)
         case .settings:
             _ = settingsController.currentDestination()
+        case .github:
+            #if canImport(AppKit)
+            if let url = URL(string: "https://github.com/blamouche/obsidian-quick-note-task") {
+                _ = NSWorkspace.shared.open(url)
+            }
+            #endif
         }
     }
 
@@ -906,6 +917,17 @@ public final class StatusBarController: NSObject {
     @objc private func onSettings() {
         settingsController.presentSettingsWindow { [weak self] in
             self?.refreshMenuState()
+        }
+    }
+
+    @objc private func onGithub() {
+        guard let url = URL(string: "https://github.com/blamouche/obsidian-quick-note-task") else {
+            showError("Open GitHub failed", detail: "Invalid repository URL.")
+            return
+        }
+
+        if !NSWorkspace.shared.open(url) {
+            showError("Open GitHub failed", detail: "Could not open GitHub repository.")
         }
     }
 
