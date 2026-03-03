@@ -57,6 +57,11 @@ jobs:
           tag_name: ${{ steps.meta.outputs.version }}
           name: DMG ${{ steps.meta.outputs.version }}
           generate_release_notes: false
+          body: |
+            Personal-use build (unsigned / unnotarized).
+
+            After copying the app to /Applications, run:
+            xattr -dr com.apple.quarantine "/Applications/ObsidianQuickNoteTask.app"
           files: ${{ steps.dmg.outputs.path }}
 
       - name: Update README with DMG link

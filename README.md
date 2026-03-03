@@ -39,8 +39,23 @@ This repository includes a GitHub Actions pipeline in
 - Publish the `.dmg` in GitHub Releases
 - Update this README with the latest release URL
 
-No signing, notarization, certificate import, or Sparkle integration is used in
-this workflow.
+This workflow is intentionally unsigned/unnotarized (no Apple Developer account required).
+
+### Installation (Personal Use)
+
+After downloading and copying the app to `/Applications`, remove quarantine once:
+
+```bash
+xattr -dr com.apple.quarantine "/Applications/ObsidianQuickNoteTask.app"
+```
+
+Then launch the app normally.
+
+Alternative for local-only usage without DMG:
+
+```bash
+swift run ObsidianQuickNoteTaskApp
+```
 
 ### Latest DMG download
 
