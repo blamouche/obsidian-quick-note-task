@@ -35,14 +35,14 @@ jobs:
       - name: Build .app bundle
         env:
           RELEASE_VERSION: ${{ steps.meta.outputs.version }}
-        run: ./scripts/release/build_app_bundle.sh
+        run: bash ./scripts/release/build_app_bundle.sh
 
       - name: Create DMG
         id: dmg
         run: |
           APP_PATH="$DIST_DIR/$APP_BUNDLE_NAME.app"
           DMG_PATH="$DIST_DIR/${{ steps.meta.outputs.dmg_name }}"
-          ./scripts/release/create_dmg.sh "$APP_PATH" "$DMG_PATH"
+          bash ./scripts/release/create_dmg.sh "$APP_PATH" "$DMG_PATH"
           echo "path=$DMG_PATH" >> "$GITHUB_OUTPUT"
 
       - name: Upload DMG artifact
