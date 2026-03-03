@@ -9,6 +9,7 @@ public enum ValidationError: Error, Equatable, LocalizedError {
     case defaultFolderMissing
     case defaultFolderInaccessible
     case defaultFolderOutsideVault
+    case taskSourceOutsideVault
 
     public var errorDescription: String? {
         switch self {
@@ -28,6 +29,8 @@ public enum ValidationError: Error, Equatable, LocalizedError {
             return "Default folder is inaccessible."
         case .defaultFolderOutsideVault:
             return "Default folder must be inside the selected vault."
+        case .taskSourceOutsideVault:
+            return "Task source must stay inside the selected vault."
         }
     }
 }
@@ -110,15 +113,37 @@ public enum Validation {
         return ConfigurationValidationState(vaultValid: true, defaultFolderValid: true, blockingReason: .none)
     }
 
-    private static func isAccessibleDirectory(_ url: URL) -> Bool {
+    public static func isAccessibleDirectory(_ url: URL) -> Bool {
         var isDirectory: ObjCBool = false
         let exists = FileManager.default.fileExists(atPath: url.path, isDirectory: &isDirectory)
         return exists && isDirectory.boolValue
     }
 
-    private static func isContained(_ candidate: URL, in root: URL) -> Bool {
+    public static func isContained(_ candidate: URL, in root: URL) -> Bool {
         let candidatePath = candidate.standardizedFileURL.path
         let rootPath = root.standardizedFileURL.path
         return candidatePath == rootPath || candidatePath.hasPrefix(rootPath + "/")
+    }
+
+    public static func sanitizeExclusionText(_ value: String?) -> String {
+        guard let value else { return "" }
+        let cleanedScalars = value.unicodeScalars.filter { scalar in
+            let isControl = CharacterSet.controlCharacters.contains(scalar)
+            return !isControl || scalar == " " || scalar == "\t"
+        }
+        let cleaned = String(String.UnicodeScalarView(cleanedScalars))
+        return cleaned.trimmingCharacters(in: CharacterSet.whitespacesAndNewlines)
+    }
+
+    public static func validateTaskSource(fileURL: URL, vaultURL: URL) throws {
+        guard isContained(fileURL, in: vaultURL) else {
+            throw ValidationError.taskSourceOutsideVault
+        }
+    }
+
+    public static func normalizeForSearch(_ value: String) -> String {
+        value
+            .folding(options: [.caseInsensitive, .diacriticInsensitive], locale: .current)
+            .trimmingCharacters(in: CharacterSet.whitespacesAndNewlines)
     }
 }

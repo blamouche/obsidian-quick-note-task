@@ -60,6 +60,7 @@ public final class SettingsController: NSObject {
     private weak var settingsWindow: NSWindow?
     private weak var vaultPathLabel: NSTextField?
     private weak var defaultFolderPathLabel: NSTextField?
+    private weak var exclusionTextField: NSTextField?
     private weak var statusLabel: NSTextField?
     private var refreshHandler: (() -> Void)?
     #endif
@@ -91,6 +92,14 @@ public final class SettingsController: NSObject {
 
     public func currentDefaultFolder() -> URL? {
         destinationStore.loadDefaultFolderURL()
+    }
+
+    public func setTaskExclusionText(_ value: String?) throws {
+        try destinationStore.saveTaskExclusionText(value)
+    }
+
+    public func currentTaskExclusionText() -> String? {
+        destinationStore.loadTaskExclusionText()
     }
 
     public func configurationState() -> SettingsConfigurationState {
@@ -177,7 +186,7 @@ public final class SettingsController: NSObject {
 
         let profile = visualProfile()
         let width: CGFloat = 640
-        let height: CGFloat = 320
+        let height: CGFloat = 380
         let inset = CGFloat(profile.spacing.windowPadding)
 
         let window = NSWindow(
@@ -222,6 +231,18 @@ public final class SettingsController: NSObject {
         chooseFolderButton.bezelStyle = .rounded
         chooseFolderButton.frame = NSRect(x: width - inset - 120, y: folderPath.frame.minY - 6, width: 120, height: 30)
 
+        let exclusionTitle = makeLabel("Task Exclusion Text", size: CGFloat(profile.typography.label), weight: .medium, color: .labelColor)
+        exclusionTitle.frame = NSRect(x: inset, y: folderPath.frame.minY - CGFloat(profile.spacing.sectionGap) - 22, width: 220, height: 20)
+
+        let exclusionInput = NSTextField(frame: NSRect(x: inset, y: exclusionTitle.frame.minY - CGFloat(profile.spacing.fieldGap) - 28, width: width - (inset * 2), height: 28))
+        exclusionInput.font = NSFont.systemFont(ofSize: CGFloat(profile.typography.input), weight: .regular)
+        exclusionInput.placeholderString = "Hide tasks containing this text"
+        exclusionInput.stringValue = currentTaskExclusionText() ?? ""
+        exclusionInput.isContinuous = true
+        exclusionInput.delegate = self
+        exclusionInput.target = self
+        exclusionInput.action = #selector(onExclusionTextChanged(_:))
+
         let statusLabel = makeLabel("", size: CGFloat(profile.typography.label), weight: .regular, color: .secondaryLabelColor)
         statusLabel.frame = NSRect(x: inset, y: inset, width: width - inset * 2, height: 20)
 
@@ -232,6 +253,8 @@ public final class SettingsController: NSObject {
         content.addSubview(folderTitle)
         content.addSubview(folderPath)
         content.addSubview(chooseFolderButton)
+        content.addSubview(exclusionTitle)
+        content.addSubview(exclusionInput)
         content.addSubview(statusLabel)
 
         window.contentView = content
@@ -240,6 +263,7 @@ public final class SettingsController: NSObject {
         self.settingsWindow = window
         self.vaultPathLabel = vaultPath
         self.defaultFolderPathLabel = folderPath
+        self.exclusionTextField = exclusionInput
         self.statusLabel = statusLabel
 
         updateWindowStateLabels()
@@ -289,10 +313,26 @@ public final class SettingsController: NSObject {
         }
     }
 
+    @objc private func onExclusionTextChanged(_ sender: NSTextField) {
+        persistExclusionText(sender.stringValue)
+    }
+
+    private func persistExclusionText(_ rawValue: String) {
+        do {
+            try setTaskExclusionText(rawValue)
+            updateWindowStateLabels()
+            refreshHandler?()
+        } catch {
+            statusLabel?.stringValue = error.localizedDescription
+            statusLabel?.textColor = .systemRed
+        }
+    }
+
     private func updateWindowStateLabels() {
         let state = configurationState()
         vaultPathLabel?.stringValue = state.vaultURL?.path ?? "Not configured"
         defaultFolderPathLabel?.stringValue = state.defaultFolderURL?.path ?? "Not configured"
+        exclusionTextField?.stringValue = currentTaskExclusionText() ?? ""
         statusLabel?.stringValue = state.message
         statusLabel?.textColor = state.canCapture ? .systemGreen : .systemOrange
     }
@@ -317,7 +357,17 @@ extension SettingsController: NSWindowDelegate {
         settingsWindow = nil
         vaultPathLabel = nil
         defaultFolderPathLabel = nil
+        exclusionTextField = nil
         statusLabel = nil
+    }
+}
+
+extension SettingsController: NSTextFieldDelegate {
+    public func controlTextDidChange(_ obj: Notification) {
+        guard let field = obj.object as? NSTextField, field == exclusionTextField else {
+            return
+        }
+        persistExclusionText(field.stringValue)
     }
 }
 #endif

@@ -27,4 +27,15 @@ final class MarkdownFormatterTests: XCTestCase {
         let output = formatter.formatTask(title: "Compat task", dueDate: nil)
         XCTAssertTrue(output.hasPrefix("- [ ] "))
     }
+
+    func testRecurrenceRuleParsingComputesNextDate() {
+        let scanner = VaultTaskScanner()
+        let recurrence = scanner.parseRecurrence(from: "- [ ] Task 📅 2026-03-03 🔁 every month")
+        let baseDate = ISO8601DateFormatter().date(from: "2026-03-03T00:00:00Z")!
+        let nextDate = scanner.nextDueDate(from: recurrence!, baseDate: baseDate)
+        let expected = ISO8601DateFormatter().date(from: "2026-04-03T00:00:00Z")
+
+        XCTAssertEqual(recurrence?.frequency, .monthly)
+        XCTAssertEqual(nextDate, expected)
+    }
 }

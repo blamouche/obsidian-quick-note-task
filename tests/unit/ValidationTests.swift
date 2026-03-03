@@ -72,4 +72,20 @@ final class ValidationTests: XCTestCase {
         XCTAssertTrue(state.defaultFolderValid)
         XCTAssertEqual(state.blockingReason, .none)
     }
+
+    func testSanitizeExclusionTextRemovesControlCharacters() {
+        let sanitized = Validation.sanitizeExclusionText("#snooze\u{0007}")
+        XCTAssertEqual(sanitized, "#snooze")
+    }
+
+    func testValidateTaskSourceFailsOutsideVault() throws {
+        let vault = try makeTempDir()
+        let outside = try makeTempDir()
+        let file = outside.appendingPathComponent("task.md")
+        FileManager.default.createFile(atPath: file.path, contents: Data(), attributes: nil)
+
+        XCTAssertThrowsError(try Validation.validateTaskSource(fileURL: file, vaultURL: vault)) { error in
+            XCTAssertEqual(error as? ValidationError, .taskSourceOutsideVault)
+        }
+    }
 }

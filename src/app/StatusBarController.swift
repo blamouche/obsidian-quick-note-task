@@ -10,6 +10,14 @@ public enum AppStatusKind: Equatable {
     case recoveryRequired
 }
 
+#if canImport(AppKit)
+extension StatusBarController: NSMenuDelegate {
+    public func menuWillOpen(_ menu: NSMenu) {
+        refreshMenuState()
+    }
+}
+#endif
+
 public struct CaptureAvailabilityState: Equatable {
     public let quickNoteEnabled: Bool
     public let taskEnabled: Bool
@@ -87,8 +95,11 @@ public final class StatusBarController: NSObject {
 
     private let captureController: CaptureWindowController
     private let settingsController: SettingsController
+    private let taskScanner: VaultTaskScanner
+    private let taskToggleService: TaskToggleService
     private let appVersionLabel: String
     private var cachedAvailabilityState: CaptureAvailabilityState
+    private var currentDropdownTasks: [DropdownTaskItem]
     #if canImport(AppKit)
     private var activeModalActionHandler: InlineModalActionHandler?
     #endif
@@ -98,15 +109,23 @@ public final class StatusBarController: NSObject {
     private var menuStatusItem: NSMenuItem?
     private var menuQuickNoteItem: NSMenuItem?
     private var menuTaskItem: NSMenuItem?
+    private var menuTasksDividerTop: NSMenuItem?
+    private var menuTasksDividerBottom: NSMenuItem?
+    private var menuDropdownTaskItems: [NSMenuItem] = []
     private var menuSettingsItem: NSMenuItem?
     #endif
 
     public init(captureController: CaptureWindowController = .init(),
-                settingsController: SettingsController = .init()) {
+                settingsController: SettingsController = .init(),
+                taskScanner: VaultTaskScanner = .init(),
+                taskToggleService: TaskToggleService = .init()) {
         self.captureController = captureController
         self.settingsController = settingsController
+        self.taskScanner = taskScanner
+        self.taskToggleService = taskToggleService
         self.appVersionLabel = Self.resolveAppVersionLabel()
         self.cachedAvailabilityState = Self.availabilityState(for: settingsController.configurationState())
+        self.currentDropdownTasks = []
         super.init()
     }
 
@@ -114,10 +133,14 @@ public final class StatusBarController: NSObject {
         #if canImport(AppKit)
         let item = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
         item.button?.title = ""
-        item.button?.image = AppIconFactory.makeStatusBarIcon()
+        item.button?.image = AppIconFactory.makeStatusBarIcon(
+            statusColor: indicatorColor(for: cachedAvailabilityState),
+            warningBadge: shouldShowWarningBadge(for: cachedAvailabilityState)
+        )
         item.button?.toolTip = "Obsidian Quick Note Task"
 
         let menu = NSMenu()
+        menu.delegate = self
         let statusEntry = NSMenuItem(title: "", action: nil, keyEquivalent: "")
         statusEntry.isEnabled = false
         menu.addItem(statusEntry)
@@ -125,9 +148,12 @@ public final class StatusBarController: NSObject {
         let quickNoteEntry = NSMenuItem(title: "Quick Note", action: #selector(onQuickNote), keyEquivalent: "n")
         let taskEntry = NSMenuItem(title: "Task", action: #selector(onTask), keyEquivalent: "t")
         let settingsEntry = NSMenuItem(title: "Settings", action: #selector(onSettings), keyEquivalent: ",")
+        let tasksDividerTop = NSMenuItem.separator()
+        let tasksDividerBottom = NSMenuItem.separator()
         menu.addItem(quickNoteEntry)
         menu.addItem(taskEntry)
-        menu.addItem(.separator())
+        menu.addItem(tasksDividerTop)
+        menu.addItem(tasksDividerBottom)
         menu.addItem(settingsEntry)
         menu.addItem(.separator())
         menu.addItem(NSMenuItem(title: "Quit", action: #selector(onQuit), keyEquivalent: "q"))
@@ -142,6 +168,8 @@ public final class StatusBarController: NSObject {
         menuStatusItem = statusEntry
         menuQuickNoteItem = quickNoteEntry
         menuTaskItem = taskEntry
+        menuTasksDividerTop = tasksDividerTop
+        menuTasksDividerBottom = tasksDividerBottom
         menuSettingsItem = settingsEntry
         refreshMenuState()
         #endif
@@ -155,12 +183,22 @@ public final class StatusBarController: NSObject {
 
     public func refreshMenuState() {
         let state = currentAvailabilityState()
+        currentDropdownTasks = loadDropdownTasks()
         #if canImport(AppKit)
+        statusItem?.button?.image = AppIconFactory.makeStatusBarIcon(
+            statusColor: indicatorColor(for: state),
+            warningBadge: shouldShowWarningBadge(for: state)
+        )
         menuStatusItem?.title = "\(state.statusMessage) • \(appVersionLabel)"
         menuQuickNoteItem?.isEnabled = state.quickNoteEnabled
         menuTaskItem?.isEnabled = state.taskEnabled
         menuSettingsItem?.title = state.settingsTitle
+        rebuildDropdownTaskSection()
         #endif
+    }
+
+    public func dropdownTaskItemsForCurrentState() -> [DropdownTaskItem] {
+        loadDropdownTasks()
     }
 
     public func visualState(for role: UIStateRole) -> VisualStateStyle {
@@ -187,6 +225,14 @@ public final class StatusBarController: NSObject {
         case .settings:
             _ = settingsController.currentDestination()
         }
+    }
+
+    private func loadDropdownTasks() -> [DropdownTaskItem] {
+        guard let vaultURL = settingsController.currentVault() else {
+            return []
+        }
+        let exclusion = settingsController.currentTaskExclusionText()
+        return taskScanner.scanDueTasks(vaultURL: vaultURL, exclusionText: exclusion)
     }
 
     private static func availabilityState(for configuration: SettingsConfigurationState) -> CaptureAvailabilityState {
@@ -262,7 +308,99 @@ public final class StatusBarController: NSObject {
         return "vdev"
     }
 
+    private static let dropdownDateFormatter: DateFormatter = {
+        let formatter = DateFormatter()
+        formatter.calendar = Calendar(identifier: .gregorian)
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        formatter.timeZone = TimeZone(secondsFromGMT: 0)
+        formatter.dateFormat = "dd/MM/yyyy"
+        return formatter
+    }()
+
     #if canImport(AppKit)
+    private func indicatorColor(for state: CaptureAvailabilityState) -> NSColor {
+        state.quickNoteEnabled && state.taskEnabled ? .systemGreen : .systemRed
+    }
+
+    private func shouldShowWarningBadge(for state: CaptureAvailabilityState) -> Bool {
+        !(state.quickNoteEnabled && state.taskEnabled)
+    }
+
+    private func rebuildDropdownTaskSection() {
+        guard let menu, let menuTasksDividerTop, let menuTasksDividerBottom else {
+            return
+        }
+
+        for item in menuDropdownTaskItems {
+            menu.removeItem(item)
+        }
+        menuDropdownTaskItems.removeAll()
+
+        let hasVault = settingsController.currentVault() != nil
+        let shouldShowSection = hasVault
+        menuTasksDividerTop.isHidden = !shouldShowSection
+        menuTasksDividerBottom.isHidden = !shouldShowSection
+
+        guard shouldShowSection else {
+            return
+        }
+
+        let insertionIndex = menu.index(of: menuTasksDividerBottom)
+        guard insertionIndex >= 0 else {
+            return
+        }
+
+        let headerItem = NSMenuItem(title: "Tasks", action: nil, keyEquivalent: "")
+        headerItem.isEnabled = false
+        menu.insertItem(headerItem, at: insertionIndex)
+        menuDropdownTaskItems.append(headerItem)
+
+        let listInsertionIndex = insertionIndex + 1
+
+        if currentDropdownTasks.isEmpty {
+            let emptyItem = NSMenuItem(title: "No due/overdue tasks", action: nil, keyEquivalent: "")
+            emptyItem.isEnabled = false
+            menu.insertItem(emptyItem, at: listInsertionIndex)
+            menuDropdownTaskItems.append(emptyItem)
+            return
+        }
+
+        var runningIndex = listInsertionIndex
+        for task in currentDropdownTasks {
+            let icon = task.isOverdue ? "⚠︎" : "•"
+            let dueDateText = Self.dropdownDateFormatter.string(from: task.dueDate)
+            let item = NSMenuItem(title: "\(icon) \(task.title) (\(dueDateText))", action: #selector(onToggleDropdownTask(_:)), keyEquivalent: "")
+            item.target = self
+            item.state = .off
+            item.representedObject = task.id
+            menu.insertItem(item, at: runningIndex)
+            menuDropdownTaskItems.append(item)
+            runningIndex += 1
+        }
+    }
+
+    @objc private func onToggleDropdownTask(_ sender: NSMenuItem) {
+        guard let id = sender.representedObject as? String,
+              let task = currentDropdownTasks.first(where: { $0.id == id }) else {
+            showError("Task update failed", detail: "Task reference not found.")
+            return
+        }
+
+        let result = taskToggleService.toggleComplete(task: task, vaultURL: settingsController.currentVault())
+        switch result.errorType {
+        case .none:
+            if result.recurrenceRescheduled {
+                showInfo("Task updated", detail: result.userMessage)
+            }
+        case .invalidRecurrence:
+            showError("Recurrence warning", detail: result.userMessage)
+        case .writeFailure, .staleReference:
+            showError("Task update failed", detail: result.userMessage)
+        }
+
+        refreshMenuState()
+    }
+
     @objc private func onQuickNote() {
         let state = currentAvailabilityState()
         guard state.quickNoteEnabled else {

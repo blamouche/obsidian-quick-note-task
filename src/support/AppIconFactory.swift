@@ -39,14 +39,18 @@ public enum AppIconFactory {
         return image
     }
 
-    public static func makeStatusBarIcon(size: CGFloat = 18) -> NSImage {
+    public static func makeStatusBarIcon(size: CGFloat = 18,
+                                         statusColor: NSColor? = nil,
+                                         warningBadge: Bool = false) -> NSImage {
         let image = NSImage(size: NSSize(width: size, height: size))
         image.lockFocus()
         defer { image.unlockFocus() }
 
+        let iconStrokeColor: NSColor = (statusColor == nil) ? .labelColor : .white
+
         let rect = NSRect(x: 1.5, y: 1.5, width: size - 3, height: size - 3)
         let box = NSBezierPath(roundedRect: rect, xRadius: 3.0, yRadius: 3.0)
-        NSColor.labelColor.setStroke()
+        iconStrokeColor.setStroke()
         box.lineWidth = 1.5
         box.stroke()
 
@@ -57,10 +61,42 @@ public enum AppIconFactory {
         check.lineWidth = 1.7
         check.lineCapStyle = .round
         check.lineJoinStyle = .round
-        NSColor.labelColor.setStroke()
+        iconStrokeColor.setStroke()
         check.stroke()
 
-        image.isTemplate = true
+        if let statusColor {
+            let dotSize = max(5, size * 0.28)
+            let dotRect = NSRect(x: size - dotSize - 0.5, y: size - dotSize - 0.5, width: dotSize, height: dotSize)
+            let dot = NSBezierPath(ovalIn: dotRect)
+            statusColor.setFill()
+            dot.fill()
+
+            NSColor.windowBackgroundColor.setStroke()
+            dot.lineWidth = 0.8
+            dot.stroke()
+
+            if warningBadge {
+                let mark = NSBezierPath()
+                let centerX = dotRect.midX
+                let topY = dotRect.maxY - (dotSize * 0.25)
+                let bottomY = dotRect.minY + (dotSize * 0.35)
+                mark.move(to: NSPoint(x: centerX, y: topY))
+                mark.line(to: NSPoint(x: centerX, y: bottomY))
+                NSColor.white.setStroke()
+                mark.lineWidth = max(1.0, dotSize * 0.16)
+                mark.lineCapStyle = .round
+                mark.stroke()
+
+                let point = NSBezierPath(ovalIn: NSRect(x: centerX - (dotSize * 0.08),
+                                                        y: dotRect.minY + (dotSize * 0.15),
+                                                        width: dotSize * 0.16,
+                                                        height: dotSize * 0.16))
+                NSColor.white.setFill()
+                point.fill()
+            }
+        }
+
+        image.isTemplate = false
         return image
     }
 }

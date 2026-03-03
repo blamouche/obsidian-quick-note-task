@@ -3,6 +3,7 @@
 DerivedData/
 *.swiftpm/
 Packages/
+dist/
 
 # Universal
 .DS_Store

@@ -64,4 +64,16 @@ final class DestinationStoreIntegrationTests: XCTestCase {
 
         XCTAssertEqual(store.loadDestinationURL(), destination)
     }
+
+    func testTaskExclusionTextPersistsAcrossStoreInstances() throws {
+        let suiteName = "test.destination.exclusion.\(UUID().uuidString)"
+        let defaults = UserDefaults(suiteName: suiteName)!
+        defer { defaults.removePersistentDomain(forName: suiteName) }
+
+        let first = DestinationStore(defaults: defaults, key: "destination")
+        try first.saveTaskExclusionText("#snooze")
+
+        let second = DestinationStore(defaults: defaults, key: "destination")
+        XCTAssertEqual(second.loadTaskExclusionText(), "#snooze")
+    }
 }

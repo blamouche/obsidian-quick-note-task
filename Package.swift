@@ -23,7 +23,10 @@ let package = Package(
         .testTarget(
             name: "ObsidianQuickNoteTaskTests",
             dependencies: ["ObsidianQuickNoteTask"],
-            path: "tests"
+            path: "tests",
+            resources: [
+                .process("fixtures")
+            ]
         )
     ]
 )

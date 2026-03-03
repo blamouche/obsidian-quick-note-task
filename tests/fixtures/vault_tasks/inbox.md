@@ -1,0 +1,7 @@
+- [ ] Overdue task 📅 2026-03-01
+- [ ] Today task 📅 2026-03-03
+- [ ] Future task 📅 2026-03-05
+- [x] Done task 📅 2026-03-01
+- [ ] Excluded #snooze task 📅 2026-03-03
+- [ ] Recur daily task 📅 2026-03-03 🔁 every day
+- [ ] Recur weekly task 📅 2026-03-03 🔁 every week
