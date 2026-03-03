@@ -32,6 +32,24 @@
 - UX model: menu bar first, configuration-aware actions
 - Storage: local filesystem only (your Obsidian vault)
 
+## Demo Screens
+
+### 1. Menu Dropdown (due/overdue + actions)
+
+![Menu Dropdown Demo](docs/assets/demo/01-menu-dropdown.png)
+
+### 2. Quick Note Capture
+
+![Quick Note Demo](docs/assets/demo/02-quick-note.png)
+
+### 3. New Task (due date + recurrence column)
+
+![New Task Demo](docs/assets/demo/03-new-task.png)
+
+### 4. Settings
+
+![Settings Demo](docs/assets/demo/04-settings.png)
+
 ## Recurring Tasks
 
 Recurring tasks are detected with a `🔁` rule at the end of a task line.
