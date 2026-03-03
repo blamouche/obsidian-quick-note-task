@@ -4,7 +4,6 @@ import AppKit
 #endif
 
 #if canImport(AppKit)
-@MainActor
 public enum AppIconFactory {
     public static func makeAppIcon(size: CGFloat = 1024) -> NSImage {
         let image = NSImage(size: NSSize(width: size, height: size))

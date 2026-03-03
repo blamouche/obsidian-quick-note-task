@@ -1,12 +1,14 @@
 import AppKit
 import ObsidianQuickNoteTask
 
-@MainActor
 final class AppDelegate: NSObject, NSApplicationDelegate {
-    private let controller = StatusBarController()
+    private var controller: StatusBarController?
 
+    @MainActor
     func applicationDidFinishLaunching(_ notification: Notification) {
+        let controller = StatusBarController()
         controller.bootstrap()
+        self.controller = controller
     }
 }
 
