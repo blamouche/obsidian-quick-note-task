@@ -19,6 +19,15 @@ final class StatusBarControllerIntegrationTests: XCTestCase {
         return (status, capture, settings)
     }
 
+    private func configureValidSettings(_ settings: SettingsController) throws -> URL {
+        let vault = try makeTempDir()
+        let folder = vault.appendingPathComponent("Inbox", isDirectory: true)
+        try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+        try settings.selectVault(vault)
+        try settings.selectDefaultFolder(folder)
+        return folder
+    }
+
     func testFirstRunStateDisablesCaptureActions() {
         let (status, _, _) = makeControllers(suite: "test.status.first.\(UUID().uuidString)")
 
@@ -27,13 +36,13 @@ final class StatusBarControllerIntegrationTests: XCTestCase {
         XCTAssertEqual(state.statusKind, .setupRequired)
         XCTAssertFalse(state.quickNoteEnabled)
         XCTAssertFalse(state.taskEnabled)
+        XCTAssertTrue(state.statusMessage.contains("Setup required"))
     }
 
     func testStateBecomesEnabledAfterSuccessfulSettingsSelection() throws {
         let (status, _, settings) = makeControllers(suite: "test.status.enable.\(UUID().uuidString)")
-        let dir = try makeTempDir()
 
-        try settings.selectDestination(dir)
+        _ = try configureValidSettings(settings)
         status.refreshMenuState()
         let state = status.currentAvailabilityState()
 
@@ -44,31 +53,31 @@ final class StatusBarControllerIntegrationTests: XCTestCase {
 
     func testInvalidDestinationAfterPriorValidSetupRequiresRecovery() throws {
         let (status, _, settings) = makeControllers(suite: "test.status.invalid.\(UUID().uuidString)")
-        let dir = try makeTempDir()
-        try settings.selectDestination(dir)
-        try FileManager.default.removeItem(at: dir)
+        let folder = try configureValidSettings(settings)
+        try FileManager.default.removeItem(at: folder)
 
         let state = status.currentAvailabilityState()
 
         XCTAssertEqual(state.statusKind, .recoveryRequired)
         XCTAssertFalse(state.quickNoteEnabled)
         XCTAssertFalse(state.taskEnabled)
-        XCTAssertTrue(state.statusMessage.contains("indisponible"))
+        XCTAssertTrue(state.statusMessage.contains("Default folder invalid"))
     }
 
     func testBlockedActionSetsActionableErrorAndRetryWorksAfterReconfigure() throws {
         let (status, capture, settings) = makeControllers(suite: "test.status.retry.\(UUID().uuidString)")
-        let oldDir = try makeTempDir()
-        try settings.selectDestination(oldDir)
-        try FileManager.default.removeItem(at: oldDir)
+        _ = try configureValidSettings(settings)
+
+        // Invalidate folder by moving to outside vault.
+        let outside = try makeTempDir()
+        try settings.selectDefaultFolder(outside)
 
         status.handle(.quickNote)
         XCTAssertNotNil(capture.lastErrorMessage)
-        XCTAssertTrue(capture.lastErrorMessage?.contains("Reconfigure") ?? false)
+        XCTAssertTrue(capture.lastErrorMessage?.contains("inside the selected vault") ?? false)
         XCTAssertEqual(capture.preservedDraft, "Quick capture placeholder")
 
-        let newDir = try makeTempDir()
-        try settings.selectDestination(newDir)
+        _ = try configureValidSettings(settings)
         status.handle(.quickNote)
 
         XCTAssertNil(capture.lastErrorMessage)
@@ -98,7 +107,7 @@ final class StatusBarControllerIntegrationTests: XCTestCase {
         let state = status.currentAvailabilityState()
 
         XCTAssertEqual(state.visualRole, .disabled)
-        XCTAssertTrue(state.statusMessage.contains("[Indisponible]"))
+        XCTAssertTrue(state.statusMessage.contains("[Unavailable]"))
     }
 
     func testSettingsDestinationActionRemainsExplicitWithoutDecorativeIcon() {

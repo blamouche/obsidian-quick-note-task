@@ -106,7 +106,7 @@ public final class StatusBarController: NSObject {
         self.captureController = captureController
         self.settingsController = settingsController
         self.appVersionLabel = Self.resolveAppVersionLabel()
-        self.cachedAvailabilityState = Self.availabilityState(for: settingsController.destinationReadiness())
+        self.cachedAvailabilityState = Self.availabilityState(for: settingsController.configurationState())
         super.init()
     }
 
@@ -148,7 +148,7 @@ public final class StatusBarController: NSObject {
     }
 
     public func currentAvailabilityState() -> CaptureAvailabilityState {
-        let newState = Self.availabilityState(for: settingsController.destinationReadiness())
+        let newState = Self.availabilityState(for: settingsController.configurationState())
         cachedAvailabilityState = newState
         return newState
     }
@@ -189,36 +189,56 @@ public final class StatusBarController: NSObject {
         }
     }
 
-    private static func availabilityState(for readiness: DestinationReadiness) -> CaptureAvailabilityState {
-        switch readiness {
-        case .notConfigured:
-            return CaptureAvailabilityState(
-                quickNoteEnabled: false,
-                taskEnabled: false,
-                statusKind: .setupRequired,
-                statusMessage: "[Unavailable] Setup required: choose an Obsidian folder.",
-                settingsTitle: "Configure Destination...",
-                blockedReason: "Configure a destination folder in Settings first.",
-                visualRole: .disabled
-            )
-        case let .configuredValid(url):
+    private static func availabilityState(for configuration: SettingsConfigurationState) -> CaptureAvailabilityState {
+        switch configuration.blockingReason {
+        case .none:
             return CaptureAvailabilityState(
                 quickNoteEnabled: true,
                 taskEnabled: true,
                 statusKind: .ready,
-                statusMessage: "[Available] Ready: active destination (\(url.lastPathComponent)).",
-                settingsTitle: "Settings",
+                statusMessage: "[Available] Ready: vault and folder are configured.",
+                settingsTitle: "Settings...",
                 blockedReason: nil,
                 visualRole: .active
             )
-        case .configuredInvalid:
+        case .vaultMissing:
+            return CaptureAvailabilityState(
+                quickNoteEnabled: false,
+                taskEnabled: false,
+                statusKind: .setupRequired,
+                statusMessage: "[Unavailable] Setup required: choose an Obsidian vault.",
+                settingsTitle: "Configure Settings...",
+                blockedReason: configuration.message,
+                visualRole: .disabled
+            )
+        case .vaultInaccessible:
             return CaptureAvailabilityState(
                 quickNoteEnabled: false,
                 taskEnabled: false,
                 statusKind: .recoveryRequired,
-                statusMessage: "[Unavailable] Destination unavailable: reconfiguration required.",
-                settingsTitle: "Reconfigure Destination...",
-                blockedReason: "The current destination is unavailable. Reconfigure the folder.",
+                statusMessage: "[Unavailable] Vault unavailable: reconfiguration required.",
+                settingsTitle: "Reconfigure Settings...",
+                blockedReason: configuration.message,
+                visualRole: .disabled
+            )
+        case .folderMissing:
+            return CaptureAvailabilityState(
+                quickNoteEnabled: false,
+                taskEnabled: false,
+                statusKind: .setupRequired,
+                statusMessage: "[Unavailable] Setup required: choose a default folder.",
+                settingsTitle: "Configure Settings...",
+                blockedReason: configuration.message,
+                visualRole: .disabled
+            )
+        case .folderInaccessible, .folderOutsideVault:
+            return CaptureAvailabilityState(
+                quickNoteEnabled: false,
+                taskEnabled: false,
+                statusKind: .recoveryRequired,
+                statusMessage: "[Unavailable] Default folder invalid: reconfiguration required.",
+                settingsTitle: "Reconfigure Settings...",
+                blockedReason: configuration.message,
                 visualRole: .disabled
             )
         }
@@ -516,24 +536,8 @@ public final class StatusBarController: NSObject {
     }
 
     @objc private func onSettings() {
-        let panel = NSOpenPanel()
-        panel.canChooseDirectories = true
-        panel.canChooseFiles = false
-        panel.canCreateDirectories = true
-        panel.allowsMultipleSelection = false
-        panel.prompt = settingsController.visualProfile().folderAffordance.actionLabel
-        panel.message = "Select the destination Obsidian folder."
-
-        if panel.runModal() == .OK, let url = panel.url {
-            do {
-                try settingsController.selectDestination(url)
-                showInfo("Destination saved", detail: url.path)
-                refreshMenuState()
-            } catch {
-                showError("Unable to save destination", detail: error.localizedDescription)
-            }
-        } else {
-            refreshMenuState()
+        settingsController.presentSettingsWindow { [weak self] in
+            self?.refreshMenuState()
         }
     }
 
