@@ -83,15 +83,15 @@ public enum UIStyle {
 
     public static let folderAffordance = FolderAffordanceStyle(
         iconVisible: false,
-        actionLabel: "Choisir le dossier..."
+        actionLabel: "Choose Folder..."
     )
 
     public static let states: [UIStateRole: VisualStateStyle] = [
         .neutral: VisualStateStyle(role: .neutral, nonColorCue: ""),
-        .active: VisualStateStyle(role: .active, nonColorCue: "Disponible"),
-        .success: VisualStateStyle(role: .success, nonColorCue: "Succes"),
-        .error: VisualStateStyle(role: .error, nonColorCue: "Erreur"),
-        .disabled: VisualStateStyle(role: .disabled, nonColorCue: "Indisponible")
+        .active: VisualStateStyle(role: .active, nonColorCue: "Available"),
+        .success: VisualStateStyle(role: .success, nonColorCue: "Success"),
+        .error: VisualStateStyle(role: .error, nonColorCue: "Error"),
+        .disabled: VisualStateStyle(role: .disabled, nonColorCue: "Unavailable")
     ]
 
     public static func stateStyle(for role: UIStateRole) -> VisualStateStyle {

@@ -1,63 +1,47 @@
-# Obsidian Quick Note Task
+<p align="center">
+  <img src="docs/assets/icon.svg" alt="Obsidian Quick Note Task Icon" width="140" height="140" />
+</p>
 
-macOS menu bar utility to quickly append quick notes and tasks into an Obsidian
-daily note file (`YYYY-MM-DD - Note.md`).
+<h1 align="center">Obsidian Quick Note Task</h1>
 
-## Current status
+<p align="center">
+  Capture notes and tasks in seconds from your macOS menu bar, directly into your Obsidian daily note.
+</p>
 
-- Feature specs, plan, contracts, and executable task breakdown are generated in
-  `specs/001-menubar-obsidian-capture/`.
-- Date picker enhancement specs/plan/tasks are generated in
-  `specs/002-task-date-picker/`.
-- UX productivity enhancement specs/plan/tasks are generated in
-  `specs/003-ux-productivity/`.
-- Swift package scaffold, core domain/services, app controllers, and test files
-  are implemented.
-- Task creation UI now includes an optional native date picker instead of
-  manual date text input.
-- Menu UX now enforces configuration-first behavior:
-  `Quick Note` and `Task` are disabled until destination setup is valid.
-- App status messaging now exposes explicit states (setup required, ready,
-  recovery required) with actionable settings labels.
-- Build validation passes with `swift build`.
-- UI visual refresh (004) now defines shared typography/spacing/state style tokens, improves capture window readability, and removes decorative folder icon affordances while keeping destination actions explicit.
+<p align="center">
+  <a href="#latest-dmg-download">Download DMG</a> •
+  <a href="#quick-start">Quick Start</a> •
+  <a href="#why-people-like-it">Why It Stands Out</a>
+</p>
 
-## Known limitation
+## Why People Like It
 
-- `swift test` currently fails in this environment due to missing `XCTest`
-  module in the active Swift toolchain. The test files are present under
-  `tests/` and ready to run once the toolchain exposes XCTest.
+- Capture from the menu bar without breaking your flow.
+- Write straight to your Obsidian daily note (`YYYY-MM-DD - Note.md`).
+- Add tasks with an optional due date from a calendar picker.
+- Clean focused UI with inline confirmations and fast close-on-success.
+- Simple distribution via GitHub Releases.
 
-## CI/CD release automation
+## Product Snapshot
 
-This repository includes a GitHub Actions pipeline in
-`.github/workflows/release.yml`, triggered on every push to `main`:
+- Platform: macOS (`.app` + `.dmg`)
+- Stack: Swift + AppKit
+- UX model: menu bar first, configuration-aware actions
+- Storage: local filesystem only (your Obsidian vault)
 
-- Build a production `.app` bundle from SwiftPM executable
-- Package the app into a `.dmg`
-- Upload the `.dmg` as a workflow artifact
-- Publish the `.dmg` in GitHub Releases
-- Update this README with the latest release URL
+## Quick Start
 
-This workflow is intentionally unsigned/unnotarized (no Apple Developer account required).
-
-### Installation (Personal Use)
-
-After downloading and copying the app to `/Applications`, remove quarantine once:
+1. Download the latest DMG from the section below.
+2. Move `ObsidianQuickNoteTask.app` to `/Applications`.
+3. For personal unsigned builds, run once:
 
 ```bash
 xattr -dr com.apple.quarantine "/Applications/ObsidianQuickNoteTask.app"
 ```
 
-Then launch the app normally.
+4. Launch the app and choose your Obsidian destination folder.
 
-Alternative for local-only usage without DMG:
-
-```bash
-swift run ObsidianQuickNoteTaskApp
-```
-
-### Latest DMG download
+## Latest DMG Download
 
 <!-- DMG_LINK_START -->
 
@@ -65,11 +49,22 @@ Latest DMG: [https://github.com/blamouche/obsidian-quick-note-task/releases/down
 Last update: 2026-03-03 (UTC)
 <!-- DMG_LINK_END -->
 
-### Optional customizations
+## Local Development
 
-Workflow env defaults:
+```bash
+swift build
+swift run ObsidianQuickNoteTaskApp
+```
 
-- Bundle ID: `com.benoitlamouche.obsidianquicknotetask`
-- App bundle name: `ObsidianQuickNoteTask`
+## Release Automation
 
-If needed, adjust values in `.github/workflows/release.yml`.
+GitHub Actions (`.github/workflows/release.yml`) automatically:
+
+- builds a production app bundle,
+- packages a DMG,
+- publishes it to GitHub Releases,
+- updates this README download link.
+
+## Current Limitations
+
+- In this environment, `swift test` may fail if `XCTest` is unavailable in the active toolchain.

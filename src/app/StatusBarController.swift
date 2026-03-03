@@ -1,6 +1,7 @@
 import Foundation
 #if canImport(AppKit)
 import AppKit
+import QuartzCore
 #endif
 
 public enum AppStatusKind: Equatable {
@@ -43,9 +44,53 @@ public enum StatusAction {
 
 @MainActor
 public final class StatusBarController: NSObject {
+    #if canImport(AppKit)
+    private final class GradientBackgroundView: NSVisualEffectView {
+        private let tintLayer = CALayer()
+
+        override init(frame frameRect: NSRect) {
+            super.init(frame: frameRect)
+            material = .hudWindow
+            blendingMode = .behindWindow
+            state = .active
+            isEmphasized = false
+            wantsLayer = true
+            layer?.masksToBounds = true
+
+            tintLayer.backgroundColor = NSColor.systemPurple.withAlphaComponent(0.08).cgColor
+            layer?.addSublayer(tintLayer)
+        }
+
+        required init?(coder: NSCoder) {
+            nil
+        }
+
+        override func layout() {
+            super.layout()
+            tintLayer.frame = bounds
+        }
+    }
+
+    private final class InlineModalActionHandler: NSObject {
+        var onPrimary: (() -> Void)?
+        var onSecondary: (() -> Void)?
+
+        @objc func handlePrimary(_ sender: Any?) {
+            onPrimary?()
+        }
+
+        @objc func handleSecondary(_ sender: Any?) {
+            onSecondary?()
+        }
+    }
+    #endif
+
     private let captureController: CaptureWindowController
     private let settingsController: SettingsController
     private var cachedAvailabilityState: CaptureAvailabilityState
+    #if canImport(AppKit)
+    private var activeModalActionHandler: InlineModalActionHandler?
+    #endif
     #if canImport(AppKit)
     private var statusItem: NSStatusItem?
     private var menu: NSMenu?
@@ -149,9 +194,9 @@ public final class StatusBarController: NSObject {
                 quickNoteEnabled: false,
                 taskEnabled: false,
                 statusKind: .setupRequired,
-                statusMessage: "[Indisponible] Configuration requise: choisis un dossier Obsidian.",
-                settingsTitle: "Configurer la destination...",
-                blockedReason: "Configure d'abord un dossier de destination dans Settings.",
+                statusMessage: "[Unavailable] Setup required: choose an Obsidian folder.",
+                settingsTitle: "Configure Destination...",
+                blockedReason: "Configure a destination folder in Settings first.",
                 visualRole: .disabled
             )
         case let .configuredValid(url):
@@ -159,7 +204,7 @@ public final class StatusBarController: NSObject {
                 quickNoteEnabled: true,
                 taskEnabled: true,
                 statusKind: .ready,
-                statusMessage: "[Disponible] Pret: destination active (\(url.lastPathComponent)).",
+                statusMessage: "[Available] Ready: active destination (\(url.lastPathComponent)).",
                 settingsTitle: "Settings",
                 blockedReason: nil,
                 visualRole: .active
@@ -169,9 +214,9 @@ public final class StatusBarController: NSObject {
                 quickNoteEnabled: false,
                 taskEnabled: false,
                 statusKind: .recoveryRequired,
-                statusMessage: "[Indisponible] Destination indisponible: reconfiguration necessaire.",
-                settingsTitle: "Reconfigurer la destination...",
-                blockedReason: "La destination actuelle est indisponible. Reconfigure le dossier.",
+                statusMessage: "[Unavailable] Destination unavailable: reconfiguration required.",
+                settingsTitle: "Reconfigure Destination...",
+                blockedReason: "The current destination is unavailable. Reconfigure the folder.",
                 visualRole: .disabled
             )
         }
@@ -181,25 +226,20 @@ public final class StatusBarController: NSObject {
     @objc private func onQuickNote() {
         let state = currentAvailabilityState()
         guard state.quickNoteEnabled else {
-            showError("Action indisponible", detail: state.blockedReason ?? state.statusMessage)
+            showError("Action unavailable", detail: state.blockedReason ?? state.statusMessage)
             return
         }
 
-        let alert = NSAlert()
-        configureAlertWithoutIcon(alert)
         let profile = captureController.visualProfile()
-        alert.messageText = "Nouvelle Quick Note"
-        alert.informativeText = "Capture claire et rapide"
-        alert.addButton(withTitle: "Ajouter")
-        alert.addButton(withTitle: "Annuler")
-
         let width: CGFloat = 520
-        let height: CGFloat = 256
+        let height: CGFloat = 320
         let inset = CGFloat(profile.spacing.windowPadding)
-        let container = NSView(frame: NSRect(x: 0, y: 0, width: width, height: height))
+        let panel = makeModalPanel(title: "New Quick Note", width: width, height: height)
+        let container = GradientBackgroundView(frame: NSRect(x: 0, y: 0, width: width, height: height))
+        panel.contentView = container
 
         let titleLabel = makeTextLabel(
-            "Saisie rapide",
+            "Quick input",
             size: CGFloat(profile.typography.title + 2),
             weight: .semibold,
             color: .labelColor
@@ -207,7 +247,7 @@ public final class StatusBarController: NSObject {
         titleLabel.frame = NSRect(x: inset, y: height - inset - 28, width: width - (inset * 2), height: 26)
 
         let subtitleLabel = makeTextLabel(
-            "Ajoute une note avec une lisibilite renforcee.",
+            "Add a note with improved readability.",
             size: CGFloat(profile.typography.label),
             weight: .regular,
             color: .secondaryLabelColor
@@ -219,7 +259,11 @@ public final class StatusBarController: NSObject {
             height: 18
         )
 
-        let editorY = inset
+        let buttonHeight: CGFloat = 30
+        let statusHeight: CGFloat = 18
+        let buttonsY = inset
+        let statusY = buttonsY + buttonHeight + 10
+        let editorY = statusY + statusHeight + 10
         let editorHeight = subtitleLabel.frame.minY - CGFloat(profile.spacing.sectionGap) - editorY
         let scrollView = NSScrollView(frame: NSRect(
             x: inset,
@@ -242,45 +286,88 @@ public final class StatusBarController: NSObject {
         textView.string = ""
         textView.insertionPointColor = .controlAccentColor
 
+        let statusLabel = makeTextLabel(
+            "",
+            size: CGFloat(profile.typography.label),
+            weight: .regular,
+            color: .secondaryLabelColor
+        )
+        statusLabel.frame = NSRect(x: inset, y: statusY, width: width - (inset * 2), height: statusHeight)
+
+        let addButton = NSButton(title: "Add", target: nil, action: nil)
+        addButton.bezelStyle = .rounded
+        addButton.keyEquivalent = "\r"
+        addButton.frame = NSRect(x: width - inset - 100, y: buttonsY, width: 100, height: buttonHeight)
+
+        let cancelButton = NSButton(title: "Cancel", target: nil, action: nil)
+        cancelButton.bezelStyle = .rounded
+        cancelButton.keyEquivalent = "\u{1b}"
+        cancelButton.frame = NSRect(x: addButton.frame.minX - 110, y: buttonsY, width: 100, height: buttonHeight)
+
         scrollView.documentView = textView
         container.addSubview(titleLabel)
         container.addSubview(subtitleLabel)
         container.addSubview(scrollView)
-        alert.accessoryView = container
+        container.addSubview(statusLabel)
+        container.addSubview(cancelButton)
+        container.addSubview(addButton)
+        let actionHandler = InlineModalActionHandler()
+        activeModalActionHandler = actionHandler
 
-        let response = alert.runModal()
-        guard response == .alertFirstButtonReturn else { return }
-
-        if captureController.submitQuickNote(textView.string) {
-            showInfo("Ajout réussi", detail: captureController.lastOutputFile?.path ?? "")
-        } else {
-            showError("Échec de l'ajout", detail: captureController.lastErrorMessage ?? "Erreur inconnue")
+        actionHandler.onSecondary = { [weak self, weak panel] in
+            guard let self, let panel else { return }
+            NSApp.stopModal(withCode: .cancel)
+            panel.orderOut(nil)
+            self.activeModalActionHandler = nil
         }
+
+        actionHandler.onPrimary = { [weak self, weak panel, weak addButton, weak cancelButton] in
+            guard let self, let panel, let addButton, let cancelButton else { return }
+            if self.captureController.submitQuickNote(textView.string) {
+                statusLabel.stringValue = "Added successfully. Closing..."
+                statusLabel.textColor = NSColor.systemGreen
+                addButton.isEnabled = false
+                cancelButton.isEnabled = false
+                textView.isEditable = false
+                DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
+                    NSApp.stopModal(withCode: .OK)
+                    panel.orderOut(nil)
+                    self.activeModalActionHandler = nil
+                }
+            } else {
+                statusLabel.stringValue = self.captureController.lastErrorMessage ?? "Unknown error"
+                statusLabel.textColor = NSColor.systemRed
+            }
+        }
+
+        addButton.target = actionHandler
+        addButton.action = #selector(InlineModalActionHandler.handlePrimary(_:))
+        cancelButton.target = actionHandler
+        cancelButton.action = #selector(InlineModalActionHandler.handleSecondary(_:))
+
+        NSApp.activate(ignoringOtherApps: true)
+        panel.makeKeyAndOrderFront(nil)
+        _ = NSApp.runModal(for: panel)
     }
 
     @objc private func onTask() {
         let state = currentAvailabilityState()
         guard state.taskEnabled else {
-            showError("Action indisponible", detail: state.blockedReason ?? state.statusMessage)
+            showError("Action unavailable", detail: state.blockedReason ?? state.statusMessage)
             return
         }
 
-        let alert = NSAlert()
-        configureAlertWithoutIcon(alert)
         let profile = captureController.visualProfile()
-        alert.messageText = "Nouvelle Task"
-        alert.informativeText = "Structure claire et compacte"
-        alert.addButton(withTitle: "Ajouter")
-        alert.addButton(withTitle: "Annuler")
-
         let width: CGFloat = 500
-        let height: CGFloat = 210
+        let height: CGFloat = 430
         let inset = CGFloat(profile.spacing.windowPadding)
         let fieldGap = CGFloat(profile.spacing.fieldGap)
-        let container = NSView(frame: NSRect(x: 0, y: 0, width: width, height: height))
+        let panel = makeModalPanel(title: "New Task", width: width, height: height)
+        let container = GradientBackgroundView(frame: NSRect(x: 0, y: 0, width: width, height: height))
+        panel.contentView = container
 
         let titleLabel = makeTextLabel(
-            "Titre de la task",
+            "Task title",
             size: CGFloat(profile.typography.label),
             weight: .medium,
             color: .labelColor
@@ -289,18 +376,43 @@ public final class StatusBarController: NSObject {
 
         let titleField = NSTextField(frame: NSRect(x: inset, y: titleLabel.frame.minY - fieldGap - 28, width: width - (inset * 2), height: 28))
         titleField.font = NSFont.systemFont(ofSize: CGFloat(profile.typography.input), weight: .regular)
-        titleField.placeholderString = "Ex: Relire la note du jour"
+        titleField.placeholderString = "e.g. Review today's note"
         titleField.bezelStyle = .roundedBezel
 
-        let dueDateToggle = NSButton(checkboxWithTitle: "Ajouter une echeance", target: nil, action: nil)
+        let dueDateToggle = NSButton(checkboxWithTitle: "Add due date", target: nil, action: nil)
         dueDateToggle.font = NSFont.systemFont(ofSize: CGFloat(profile.typography.label), weight: .regular)
         dueDateToggle.frame = NSRect(x: inset, y: titleField.frame.minY - CGFloat(profile.spacing.sectionGap) - 24, width: width - (inset * 2), height: 22)
 
-        let dueDatePicker = NSDatePicker(frame: NSRect(x: inset + 4, y: dueDateToggle.frame.minY - fieldGap - 30, width: 240, height: 28))
-        dueDatePicker.datePickerStyle = .textFieldAndStepper
+        let calendarHeight: CGFloat = 170
+        let dueDatePicker = NSDatePicker(frame: NSRect(
+            x: inset,
+            y: dueDateToggle.frame.minY - fieldGap - calendarHeight,
+            width: width - (inset * 2),
+            height: calendarHeight
+        ))
+        dueDatePicker.datePickerStyle = .clockAndCalendar
+        dueDatePicker.datePickerMode = .single
         dueDatePicker.datePickerElements = [.yearMonthDay]
         dueDatePicker.dateValue = Date()
         dueDatePicker.isEnabled = false
+
+        let statusLabel = makeTextLabel(
+            "",
+            size: CGFloat(profile.typography.label),
+            weight: .regular,
+            color: .secondaryLabelColor
+        )
+        statusLabel.frame = NSRect(x: inset, y: inset + 40, width: width - (inset * 2), height: 18)
+
+        let addButton = NSButton(title: "Add", target: nil, action: nil)
+        addButton.bezelStyle = .rounded
+        addButton.keyEquivalent = "\r"
+        addButton.frame = NSRect(x: width - inset - 100, y: inset, width: 100, height: 30)
+
+        let cancelButton = NSButton(title: "Cancel", target: nil, action: nil)
+        cancelButton.bezelStyle = .rounded
+        cancelButton.keyEquivalent = "\u{1b}"
+        cancelButton.frame = NSRect(x: addButton.frame.minX - 110, y: inset, width: 100, height: 30)
 
         dueDateToggle.target = self
         dueDateToggle.action = #selector(onToggleDueDate(_:))
@@ -311,18 +423,66 @@ public final class StatusBarController: NSObject {
         container.addSubview(titleField)
         container.addSubview(dueDateToggle)
         container.addSubview(dueDatePicker)
-        alert.accessoryView = container
+        container.addSubview(statusLabel)
+        container.addSubview(cancelButton)
+        container.addSubview(addButton)
 
-        let response = alert.runModal()
-        guard response == .alertFirstButtonReturn else { return }
-        let dueDateEnabled = dueDateToggle.state == .on
-        let dueDate = Validation.normalizeOptionalDueDate(selected: dueDatePicker.dateValue, enabled: dueDateEnabled)
+        let actionHandler = InlineModalActionHandler()
+        activeModalActionHandler = actionHandler
 
-        if captureController.submitTask(title: titleField.stringValue, dueDate: dueDate) {
-            showInfo("Ajout réussi", detail: captureController.lastOutputFile?.path ?? "")
-        } else {
-            showError("Échec de l'ajout", detail: captureController.lastErrorMessage ?? "Erreur inconnue")
+        actionHandler.onSecondary = { [weak self, weak panel] in
+            guard let self, let panel else { return }
+            NSApp.stopModal(withCode: .cancel)
+            panel.orderOut(nil)
+            self.activeModalActionHandler = nil
         }
+
+        actionHandler.onPrimary = { [weak self, weak panel, weak addButton, weak cancelButton] in
+            guard let self, let panel, let addButton, let cancelButton else { return }
+            let dueDateEnabled = dueDateToggle.state == .on
+            let dueDate = Validation.normalizeOptionalDueDate(selected: dueDatePicker.dateValue, enabled: dueDateEnabled)
+
+            if self.captureController.submitTask(title: titleField.stringValue, dueDate: dueDate) {
+                statusLabel.stringValue = "Added successfully. Closing..."
+                statusLabel.textColor = NSColor.systemGreen
+                addButton.isEnabled = false
+                cancelButton.isEnabled = false
+                titleField.isEnabled = false
+                dueDateToggle.isEnabled = false
+                dueDatePicker.isEnabled = false
+                DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
+                    NSApp.stopModal(withCode: .OK)
+                    panel.orderOut(nil)
+                    self.activeModalActionHandler = nil
+                }
+            } else {
+                statusLabel.stringValue = self.captureController.lastErrorMessage ?? "Unknown error"
+                statusLabel.textColor = NSColor.systemRed
+            }
+        }
+
+        addButton.target = actionHandler
+        addButton.action = #selector(InlineModalActionHandler.handlePrimary(_:))
+        cancelButton.target = actionHandler
+        cancelButton.action = #selector(InlineModalActionHandler.handleSecondary(_:))
+
+        NSApp.activate(ignoringOtherApps: true)
+        panel.makeKeyAndOrderFront(nil)
+        _ = NSApp.runModal(for: panel)
+    }
+
+    private func makeModalPanel(title: String, width: CGFloat, height: CGFloat) -> NSPanel {
+        let panel = NSPanel(
+            contentRect: NSRect(x: 0, y: 0, width: width, height: height),
+            styleMask: [.titled],
+            backing: .buffered,
+            defer: false
+        )
+        panel.title = title
+        panel.isFloatingPanel = true
+        panel.level = .modalPanel
+        panel.center()
+        return panel
     }
 
     @objc private func onToggleDueDate(_ sender: NSButton) {
@@ -342,15 +502,15 @@ public final class StatusBarController: NSObject {
         panel.canCreateDirectories = true
         panel.allowsMultipleSelection = false
         panel.prompt = settingsController.visualProfile().folderAffordance.actionLabel
-        panel.message = "Sélectionne le dossier Obsidian de destination."
+        panel.message = "Select the destination Obsidian folder."
 
         if panel.runModal() == .OK, let url = panel.url {
             do {
                 try settingsController.selectDestination(url)
-                showInfo("Destination enregistrée", detail: url.path)
+                showInfo("Destination saved", detail: url.path)
                 refreshMenuState()
             } catch {
-                showError("Impossible d'enregistrer la destination", detail: error.localizedDescription)
+                showError("Unable to save destination", detail: error.localizedDescription)
             }
         } else {
             refreshMenuState()
