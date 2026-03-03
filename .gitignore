@@ -1,0 +1,15 @@
+# Swift
+.build/
+DerivedData/
+*.swiftpm/
+Packages/
+
+# Universal
+.DS_Store
+Thumbs.db
+*.tmp
+*.swp
+.vscode/
+.idea/
+*.log
+.env*
