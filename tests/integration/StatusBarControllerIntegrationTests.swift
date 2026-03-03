@@ -117,4 +117,32 @@ final class StatusBarControllerIntegrationTests: XCTestCase {
         XCTAssertFalse(profile.folderAffordance.iconVisible)
         XCTAssertFalse(profile.folderAffordance.actionLabel.isEmpty)
     }
+
+    func testDropdownTasksReflectExclusionFilterChanges() throws {
+        let fixedDate = ISO8601DateFormatter().date(from: "2026-03-03T10:00:00Z")!
+        let scanner = VaultTaskScanner(dateProvider: FixedDateProvider(fixedDate))
+        let suite = "test.status.dropdown.exclusion.\(UUID().uuidString)"
+        let defaults = UserDefaults(suiteName: suite)!
+        defaults.removePersistentDomain(forName: suite)
+        let store = DestinationStore(defaults: defaults, key: "destination")
+        let capture = CaptureWindowController(destinationStore: store)
+        let settings = SettingsController(destinationStore: store)
+        let status = StatusBarController(captureController: capture, settingsController: settings, taskScanner: scanner)
+
+        let vault = try makeTempDir()
+        let folder = vault.appendingPathComponent("Inbox", isDirectory: true)
+        try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+        try "- [ ] Keep 📅 2026-03-03\n- [ ] Snoozed #snooze 📅 2026-03-03"
+            .data(using: .utf8)?
+            .write(to: vault.appendingPathComponent("tasks.md"))
+        try settings.selectVault(vault)
+        try settings.selectDefaultFolder(folder)
+
+        XCTAssertEqual(status.dropdownTaskItemsForCurrentState().count, 2)
+
+        try settings.setTaskExclusionText("#snooze")
+
+        XCTAssertEqual(status.dropdownTaskItemsForCurrentState().count, 1)
+        XCTAssertEqual(status.dropdownTaskItemsForCurrentState().first?.title, "Keep")
+    }
 }

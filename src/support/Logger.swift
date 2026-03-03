@@ -20,6 +20,13 @@ public final class Logger: Logging {
     public func redact(_ raw: String) -> String {
         let trimmed = raw.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { return "<empty>" }
-        return "<redacted len=\(trimmed.count)>"
+        let normalized = trimmed.replacingOccurrences(of: "\n", with: " ")
+        if normalized.hasPrefix("- [") {
+            return "<redacted task len=\(normalized.count)>"
+        }
+        if normalized.contains("📅") || normalized.contains("🔁") {
+            return "<redacted dated-content len=\(normalized.count)>"
+        }
+        return "<redacted len=\(normalized.count)>"
     }
 }

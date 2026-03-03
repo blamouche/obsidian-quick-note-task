@@ -19,6 +19,9 @@
 - Capture from the menu bar without breaking your flow.
 - Write straight to your Obsidian daily note (`YYYY-MM-DD - Note.md`).
 - Add tasks with an optional due date from a calendar picker.
+- See due-today and overdue tasks directly in the menu dropdown.
+- Filter visible dropdown tasks with a configurable exclusion text.
+- Complete tasks from dropdown and auto-reschedule recurring tasks.
 - Clean focused UI with inline confirmations and fast close-on-success.
 - Simple distribution via GitHub Releases.
 

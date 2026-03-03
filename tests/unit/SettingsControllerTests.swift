@@ -105,4 +105,24 @@ final class SettingsControllerTests: XCTestCase {
 
         XCTAssertEqual(sut.currentDestination(), folder)
     }
+
+    func testTaskExclusionTextPersistenceRoundTrip() throws {
+        let suiteName = "test.settings.exclusion.\(UUID().uuidString)"
+        let store = makeStore(suiteName)
+        let sut = SettingsController(destinationStore: store)
+
+        try sut.setTaskExclusionText("#snooze")
+
+        XCTAssertEqual(sut.currentTaskExclusionText(), "#snooze")
+    }
+
+    func testTaskExclusionTextSanitizationDropsControlCharacters() throws {
+        let suiteName = "test.settings.exclusion.sanitize.\(UUID().uuidString)"
+        let store = makeStore(suiteName)
+        let sut = SettingsController(destinationStore: store)
+
+        try sut.setTaskExclusionText("#snooze\u{0007}")
+
+        XCTAssertEqual(sut.currentTaskExclusionText(), "#snooze")
+    }
 }

@@ -2,12 +2,15 @@ import Foundation
 
 public enum DestinationStoreError: Error, LocalizedError {
     case invalidDirectory
+    case invalidFilter
     case unableToPersist
 
     public var errorDescription: String? {
         switch self {
         case .invalidDirectory:
             return "Selected destination is not a valid local directory."
+        case .invalidFilter:
+            return "Task exclusion filter is invalid."
         case .unableToPersist:
             return "Unable to persist destination folder."
         }
@@ -19,15 +22,18 @@ public final class DestinationStore {
     private let key: String
     private let vaultKey: String
     private let defaultFolderKey: String
+    private let taskExclusionTextKey: String
 
     public init(defaults: UserDefaults = .standard,
                 key: String = "obsidian.destination.bookmark",
                 vaultKey: String = "obsidian.vault.bookmark",
-                defaultFolderKey: String = "obsidian.default-folder.bookmark") {
+                defaultFolderKey: String = "obsidian.default-folder.bookmark",
+                taskExclusionTextKey: String = "obsidian.task-exclusion-text") {
         self.defaults = defaults
         self.key = key
         self.vaultKey = vaultKey
         self.defaultFolderKey = defaultFolderKey
+        self.taskExclusionTextKey = taskExclusionTextKey
     }
 
     public func saveDestination(url: URL) throws {
@@ -54,10 +60,29 @@ public final class DestinationStore {
         loadDefaultFolderURL()
     }
 
+    public func saveTaskExclusionText(_ value: String?) throws {
+        let sanitized = Validation.sanitizeExclusionText(value)
+        if sanitized.count > 256 {
+            throw DestinationStoreError.invalidFilter
+        }
+
+        if sanitized.isEmpty {
+            defaults.removeObject(forKey: taskExclusionTextKey)
+            return
+        }
+
+        defaults.set(sanitized, forKey: taskExclusionTextKey)
+    }
+
+    public func loadTaskExclusionText() -> String? {
+        defaults.string(forKey: taskExclusionTextKey)
+    }
+
     public func clear() {
         defaults.removeObject(forKey: key)
         defaults.removeObject(forKey: vaultKey)
         defaults.removeObject(forKey: defaultFolderKey)
+        defaults.removeObject(forKey: taskExclusionTextKey)
     }
 
     private func saveBookmark(url: URL, key: String) throws {
