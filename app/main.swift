@@ -11,6 +11,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 }
 
 let app = NSApplication.shared
+app.applicationIconImage = AppIconFactory.makeAppIcon()
 let delegate = AppDelegate()
 app.delegate = delegate
 app.setActivationPolicy(.accessory)

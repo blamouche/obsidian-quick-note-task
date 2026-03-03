@@ -21,4 +21,10 @@ final class MarkdownFormatterTests: XCTestCase {
         let output = formatter.formatTask(title: "Planifier sprint", dueDate: date)
         XCTAssertEqual(output, "- [ ] Planifier sprint 📅 2026-03-05")
     }
+
+    func testTaskFormattingKeepsStablePrefixForCompatibility() {
+        let formatter = MarkdownFormatter()
+        let output = formatter.formatTask(title: "Compat task", dueDate: nil)
+        XCTAssertTrue(output.hasPrefix("- [ ] "))
+    }
 }

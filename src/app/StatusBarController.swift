@@ -27,7 +27,8 @@ public final class StatusBarController: NSObject {
     public func bootstrap() {
         #if canImport(AppKit)
         let item = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
-        item.button?.title = "📝"
+        item.button?.title = ""
+        item.button?.image = AppIconFactory.makeStatusBarIcon()
         item.button?.toolTip = "Obsidian Quick Note Task"
 
         let menu = NSMenu()
@@ -52,7 +53,7 @@ public final class StatusBarController: NSObject {
         case .quickNote:
             _ = captureController.submitQuickNote("Quick capture placeholder")
         case .task:
-            _ = captureController.submitTask(title: "Task capture placeholder", dueDateInput: nil)
+            _ = captureController.submitTask(title: "Task capture placeholder", dueDate: nil)
         case .settings:
             _ = settingsController.currentDestination()
         }
@@ -66,14 +67,26 @@ public final class StatusBarController: NSObject {
         alert.addButton(withTitle: "Add")
         alert.addButton(withTitle: "Cancel")
 
-        let input = NSTextField(frame: NSRect(x: 0, y: 0, width: 360, height: 24))
-        input.placeholderString = "Ex: idée, rappel, phrase..."
-        alert.accessoryView = input
+        let container = NSView(frame: NSRect(x: 0, y: 0, width: 420, height: 150))
+        let scrollView = NSScrollView(frame: NSRect(x: 0, y: 0, width: 420, height: 150))
+        scrollView.hasVerticalScroller = true
+        scrollView.borderType = .bezelBorder
+
+        let textView = NSTextView(frame: NSRect(x: 0, y: 0, width: 420, height: 150))
+        textView.isVerticallyResizable = true
+        textView.isHorizontallyResizable = false
+        textView.autoresizingMask = [.width]
+        textView.font = NSFont.systemFont(ofSize: 13)
+        textView.string = ""
+
+        scrollView.documentView = textView
+        container.addSubview(scrollView)
+        alert.accessoryView = container
 
         let response = alert.runModal()
         guard response == .alertFirstButtonReturn else { return }
 
-        if captureController.submitQuickNote(input.stringValue) {
+        if captureController.submitQuickNote(textView.string) {
             showInfo("Quick note ajoutée", detail: captureController.lastOutputFile?.path ?? "")
         } else {
             showError("Échec de l'ajout", detail: captureController.lastErrorMessage ?? "Erreur inconnue")
@@ -83,29 +96,52 @@ public final class StatusBarController: NSObject {
     @objc private func onTask() {
         let alert = NSAlert()
         alert.messageText = "Task"
-        alert.informativeText = "Titre obligatoire, échéance optionnelle (YYYY-MM-DD)."
+        alert.informativeText = "Titre obligatoire, échéance optionnelle via sélecteur."
         alert.addButton(withTitle: "Add")
         alert.addButton(withTitle: "Cancel")
 
-        let container = NSView(frame: NSRect(x: 0, y: 0, width: 360, height: 64))
-        let titleField = NSTextField(frame: NSRect(x: 0, y: 36, width: 360, height: 24))
+        let container = NSView(frame: NSRect(x: 0, y: 0, width: 360, height: 98))
+        let titleField = NSTextField(frame: NSRect(x: 0, y: 72, width: 360, height: 24))
         titleField.placeholderString = "Titre de la task"
-        let dueDateField = NSTextField(frame: NSRect(x: 0, y: 4, width: 360, height: 24))
-        dueDateField.placeholderString = "Échéance optionnelle: YYYY-MM-DD"
+        let dueDateToggle = NSButton(checkboxWithTitle: "Ajouter une échéance", target: nil, action: nil)
+        dueDateToggle.frame = NSRect(x: 0, y: 42, width: 200, height: 22)
+
+        let dueDatePicker = NSDatePicker(frame: NSRect(x: 0, y: 8, width: 220, height: 28))
+        dueDatePicker.datePickerStyle = .textFieldAndStepper
+        dueDatePicker.datePickerElements = [.yearMonthDay]
+        dueDatePicker.dateValue = Date()
+        dueDatePicker.isEnabled = false
+
+        dueDateToggle.target = self
+        dueDateToggle.action = #selector(onToggleDueDate(_:))
+        dueDateToggle.identifier = NSUserInterfaceItemIdentifier("taskDueDateToggle")
+        dueDatePicker.identifier = NSUserInterfaceItemIdentifier("taskDueDatePicker")
+
         container.addSubview(titleField)
-        container.addSubview(dueDateField)
+        container.addSubview(dueDateToggle)
+        container.addSubview(dueDatePicker)
         alert.accessoryView = container
 
         let response = alert.runModal()
         guard response == .alertFirstButtonReturn else { return }
-        let dueDateInput = dueDateField.stringValue.trimmingCharacters(in: .whitespacesAndNewlines)
-        let dueDate = dueDateInput.isEmpty ? nil : dueDateInput
+        let dueDateEnabled = dueDateToggle.state == .on
+        let dueDate = Validation.normalizeOptionalDueDate(selected: dueDatePicker.dateValue, enabled: dueDateEnabled)
 
-        if captureController.submitTask(title: titleField.stringValue, dueDateInput: dueDate) {
+        if captureController.submitTask(title: titleField.stringValue, dueDate: dueDate) {
             showInfo("Task ajoutée", detail: captureController.lastOutputFile?.path ?? "")
         } else {
             showError("Échec de l'ajout", detail: captureController.lastErrorMessage ?? "Erreur inconnue")
         }
+    }
+
+    @objc private func onToggleDueDate(_ sender: NSButton) {
+        guard
+            let container = sender.superview,
+            let picker = container.subviews.first(where: { $0.identifier?.rawValue == "taskDueDatePicker" }) as? NSDatePicker
+        else {
+            return
+        }
+        picker.isEnabled = (sender.state == .on)
     }
 
     @objc private func onSettings() {

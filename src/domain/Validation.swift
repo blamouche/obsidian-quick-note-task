@@ -45,4 +45,8 @@ public enum Validation {
         }
         return date
     }
+
+    public static func normalizeOptionalDueDate(selected: Date?, enabled: Bool) -> Date? {
+        enabled ? selected : nil
+    }
 }
