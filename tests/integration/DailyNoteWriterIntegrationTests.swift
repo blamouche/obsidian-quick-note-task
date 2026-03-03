@@ -118,4 +118,24 @@ final class DailyNoteWriterIntegrationTests: XCTestCase {
         let output = try String(contentsOf: capture.lastOutputFile!, encoding: .utf8)
         XCTAssertTrue(output.contains("- [ ] Configured task 📅 2026-03-10"))
     }
+
+    func testMarkdownOutputRemainsUnchangedWithVisualRefreshProfiles() throws {
+        let suiteName = "test.capture.markdown.visual-regression.\(UUID().uuidString)"
+        let defaults = UserDefaults(suiteName: suiteName)!
+        defer { defaults.removePersistentDomain(forName: suiteName) }
+
+        let store = DestinationStore(defaults: defaults, key: "destination")
+        let settings = SettingsController(destinationStore: store)
+        let destination = try makeTempDir()
+        try settings.selectDestination(destination)
+        let capture = CaptureWindowController(destinationStore: store)
+
+        XCTAssertFalse(capture.visualProfile().folderAffordance.iconVisible)
+        XCTAssertTrue(capture.submitQuickNote("UI refresh should not change markdown"))
+        XCTAssertTrue(capture.submitTask(title: "Task markdown unchanged", dueDate: nil))
+
+        let output = try String(contentsOf: capture.lastOutputFile!, encoding: .utf8)
+        XCTAssertTrue(output.contains("- [ ] Task markdown unchanged"))
+        XCTAssertTrue(output.contains("### Quick Note"))
+    }
 }

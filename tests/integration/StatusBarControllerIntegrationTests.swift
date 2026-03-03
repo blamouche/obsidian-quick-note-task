@@ -74,4 +74,38 @@ final class StatusBarControllerIntegrationTests: XCTestCase {
         XCTAssertNil(capture.lastErrorMessage)
         XCTAssertNotNil(capture.lastOutputFile)
     }
+
+    func testQuickNoteVisualProfileProvidesReadableHierarchy() {
+        let (_, capture, _) = makeControllers(suite: "test.status.visual.quicknote.\(UUID().uuidString)")
+        let profile = capture.visualProfile()
+
+        XCTAssertGreaterThan(profile.typography.title, profile.typography.label)
+        XCTAssertGreaterThanOrEqual(profile.typography.input, profile.typography.label)
+        XCTAssertGreaterThan(profile.spacing.windowPadding, 0)
+    }
+
+    func testTaskVisualProfileKeepsReadableControlDensity() {
+        let (_, capture, _) = makeControllers(suite: "test.status.visual.task.\(UUID().uuidString)")
+        let profile = capture.visualProfile()
+
+        XCTAssertGreaterThan(profile.spacing.sectionGap, 0)
+        XCTAssertGreaterThan(profile.spacing.fieldGap, 0)
+        XCTAssertLessThanOrEqual(profile.spacing.actionGap, profile.spacing.sectionGap)
+    }
+
+    func testDisabledStateReadabilityIncludesNonColorCue() {
+        let (status, _, _) = makeControllers(suite: "test.status.visual.disabledcue.\(UUID().uuidString)")
+        let state = status.currentAvailabilityState()
+
+        XCTAssertEqual(state.visualRole, .disabled)
+        XCTAssertTrue(state.statusMessage.contains("[Indisponible]"))
+    }
+
+    func testSettingsDestinationActionRemainsExplicitWithoutDecorativeIcon() {
+        let (_, _, settings) = makeControllers(suite: "test.status.visual.folderlabel.\(UUID().uuidString)")
+        let profile = settings.visualProfile()
+
+        XCTAssertFalse(profile.folderAffordance.iconVisible)
+        XCTAssertFalse(profile.folderAffordance.actionLabel.isEmpty)
+    }
 }

@@ -1,5 +1,19 @@
 import Foundation
 
+public struct CaptureVisualProfile: Equatable {
+    public let typography: TypographyScale
+    public let spacing: SpacingScale
+    public let folderAffordance: FolderAffordanceStyle
+
+    public init(typography: TypographyScale,
+                spacing: SpacingScale,
+                folderAffordance: FolderAffordanceStyle) {
+        self.typography = typography
+        self.spacing = spacing
+        self.folderAffordance = folderAffordance
+    }
+}
+
 public final class CaptureWindowController {
     private let destinationStore: DestinationStore
     private let writer: DailyNoteWriter
@@ -18,6 +32,14 @@ public final class CaptureWindowController {
         self.writer = writer
         self.dateProvider = dateProvider
         self.logger = logger
+    }
+
+    public func visualProfile() -> CaptureVisualProfile {
+        CaptureVisualProfile(
+            typography: UIStyle.typography,
+            spacing: UIStyle.spacing,
+            folderAffordance: UIStyle.folderAffordance
+        )
     }
 
     @discardableResult

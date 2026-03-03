@@ -16,19 +16,22 @@ public struct CaptureAvailabilityState: Equatable {
     public let statusMessage: String
     public let settingsTitle: String
     public let blockedReason: String?
+    public let visualRole: UIStateRole
 
     public init(quickNoteEnabled: Bool,
                 taskEnabled: Bool,
                 statusKind: AppStatusKind,
                 statusMessage: String,
                 settingsTitle: String,
-                blockedReason: String?) {
+                blockedReason: String?,
+                visualRole: UIStateRole) {
         self.quickNoteEnabled = quickNoteEnabled
         self.taskEnabled = taskEnabled
         self.statusKind = statusKind
         self.statusMessage = statusMessage
         self.settingsTitle = settingsTitle
         self.blockedReason = blockedReason
+        self.visualRole = visualRole
     }
 }
 
@@ -113,6 +116,10 @@ public final class StatusBarController: NSObject {
         #endif
     }
 
+    public func visualState(for role: UIStateRole) -> VisualStateStyle {
+        UIStyle.stateStyle(for: role)
+    }
+
     public func handle(_ action: StatusAction) {
         let state = currentAvailabilityState()
         switch action {
@@ -142,27 +149,30 @@ public final class StatusBarController: NSObject {
                 quickNoteEnabled: false,
                 taskEnabled: false,
                 statusKind: .setupRequired,
-                statusMessage: "Configuration requise: choisis un dossier Obsidian.",
+                statusMessage: "[Indisponible] Configuration requise: choisis un dossier Obsidian.",
                 settingsTitle: "Configurer la destination...",
-                blockedReason: "Configure d'abord un dossier de destination dans Settings."
+                blockedReason: "Configure d'abord un dossier de destination dans Settings.",
+                visualRole: .disabled
             )
         case let .configuredValid(url):
             return CaptureAvailabilityState(
                 quickNoteEnabled: true,
                 taskEnabled: true,
                 statusKind: .ready,
-                statusMessage: "Prêt: destination active (\(url.lastPathComponent)).",
+                statusMessage: "[Disponible] Pret: destination active (\(url.lastPathComponent)).",
                 settingsTitle: "Settings",
-                blockedReason: nil
+                blockedReason: nil,
+                visualRole: .active
             )
         case .configuredInvalid:
             return CaptureAvailabilityState(
                 quickNoteEnabled: false,
                 taskEnabled: false,
                 statusKind: .recoveryRequired,
-                statusMessage: "Destination indisponible: reconfiguration nécessaire.",
+                statusMessage: "[Indisponible] Destination indisponible: reconfiguration necessaire.",
                 settingsTitle: "Reconfigurer la destination...",
-                blockedReason: "La destination actuelle est indisponible. Reconfigure le dossier."
+                blockedReason: "La destination actuelle est indisponible. Reconfigure le dossier.",
+                visualRole: .disabled
             )
         }
     }
@@ -176,24 +186,65 @@ public final class StatusBarController: NSObject {
         }
 
         let alert = NSAlert()
-        alert.messageText = "Quick Note"
-        alert.informativeText = "Capture rapide: saisis puis valide."
-        alert.addButton(withTitle: "Add")
-        alert.addButton(withTitle: "Cancel")
+        configureAlertWithoutIcon(alert)
+        let profile = captureController.visualProfile()
+        alert.messageText = "Nouvelle Quick Note"
+        alert.informativeText = "Capture claire et rapide"
+        alert.addButton(withTitle: "Ajouter")
+        alert.addButton(withTitle: "Annuler")
 
-        let container = NSView(frame: NSRect(x: 0, y: 0, width: 420, height: 150))
-        let scrollView = NSScrollView(frame: NSRect(x: 0, y: 0, width: 420, height: 150))
+        let width: CGFloat = 520
+        let height: CGFloat = 256
+        let inset = CGFloat(profile.spacing.windowPadding)
+        let container = NSView(frame: NSRect(x: 0, y: 0, width: width, height: height))
+
+        let titleLabel = makeTextLabel(
+            "Saisie rapide",
+            size: CGFloat(profile.typography.title + 2),
+            weight: .semibold,
+            color: .labelColor
+        )
+        titleLabel.frame = NSRect(x: inset, y: height - inset - 28, width: width - (inset * 2), height: 26)
+
+        let subtitleLabel = makeTextLabel(
+            "Ajoute une note avec une lisibilite renforcee.",
+            size: CGFloat(profile.typography.label),
+            weight: .regular,
+            color: .secondaryLabelColor
+        )
+        subtitleLabel.frame = NSRect(
+            x: inset,
+            y: titleLabel.frame.minY - CGFloat(profile.spacing.fieldGap) - 18,
+            width: width - (inset * 2),
+            height: 18
+        )
+
+        let editorY = inset
+        let editorHeight = subtitleLabel.frame.minY - CGFloat(profile.spacing.sectionGap) - editorY
+        let scrollView = NSScrollView(frame: NSRect(
+            x: inset,
+            y: editorY,
+            width: width - (inset * 2),
+            height: editorHeight
+        ))
         scrollView.hasVerticalScroller = true
         scrollView.borderType = .bezelBorder
+        scrollView.wantsLayer = true
+        scrollView.layer?.cornerRadius = 10
+        scrollView.layer?.borderWidth = 1
+        scrollView.layer?.borderColor = NSColor.separatorColor.cgColor
 
-        let textView = NSTextView(frame: NSRect(x: 0, y: 0, width: 420, height: 150))
+        let textView = NSTextView(frame: NSRect(x: 0, y: 0, width: scrollView.frame.width, height: scrollView.frame.height))
         textView.isVerticallyResizable = true
         textView.isHorizontallyResizable = false
         textView.autoresizingMask = [.width]
-        textView.font = NSFont.systemFont(ofSize: 13)
+        textView.font = NSFont.systemFont(ofSize: CGFloat(profile.typography.input), weight: .regular)
         textView.string = ""
+        textView.insertionPointColor = .controlAccentColor
 
         scrollView.documentView = textView
+        container.addSubview(titleLabel)
+        container.addSubview(subtitleLabel)
         container.addSubview(scrollView)
         alert.accessoryView = container
 
@@ -215,18 +266,37 @@ public final class StatusBarController: NSObject {
         }
 
         let alert = NSAlert()
-        alert.messageText = "Task"
-        alert.informativeText = "Titre requis, échéance optionnelle."
-        alert.addButton(withTitle: "Add")
-        alert.addButton(withTitle: "Cancel")
+        configureAlertWithoutIcon(alert)
+        let profile = captureController.visualProfile()
+        alert.messageText = "Nouvelle Task"
+        alert.informativeText = "Structure claire et compacte"
+        alert.addButton(withTitle: "Ajouter")
+        alert.addButton(withTitle: "Annuler")
 
-        let container = NSView(frame: NSRect(x: 0, y: 0, width: 360, height: 98))
-        let titleField = NSTextField(frame: NSRect(x: 0, y: 72, width: 360, height: 24))
-        titleField.placeholderString = "Titre de la task"
-        let dueDateToggle = NSButton(checkboxWithTitle: "Ajouter une échéance", target: nil, action: nil)
-        dueDateToggle.frame = NSRect(x: 0, y: 42, width: 200, height: 22)
+        let width: CGFloat = 500
+        let height: CGFloat = 210
+        let inset = CGFloat(profile.spacing.windowPadding)
+        let fieldGap = CGFloat(profile.spacing.fieldGap)
+        let container = NSView(frame: NSRect(x: 0, y: 0, width: width, height: height))
 
-        let dueDatePicker = NSDatePicker(frame: NSRect(x: 0, y: 8, width: 220, height: 28))
+        let titleLabel = makeTextLabel(
+            "Titre de la task",
+            size: CGFloat(profile.typography.label),
+            weight: .medium,
+            color: .labelColor
+        )
+        titleLabel.frame = NSRect(x: inset, y: height - inset - 20, width: width - (inset * 2), height: 18)
+
+        let titleField = NSTextField(frame: NSRect(x: inset, y: titleLabel.frame.minY - fieldGap - 28, width: width - (inset * 2), height: 28))
+        titleField.font = NSFont.systemFont(ofSize: CGFloat(profile.typography.input), weight: .regular)
+        titleField.placeholderString = "Ex: Relire la note du jour"
+        titleField.bezelStyle = .roundedBezel
+
+        let dueDateToggle = NSButton(checkboxWithTitle: "Ajouter une echeance", target: nil, action: nil)
+        dueDateToggle.font = NSFont.systemFont(ofSize: CGFloat(profile.typography.label), weight: .regular)
+        dueDateToggle.frame = NSRect(x: inset, y: titleField.frame.minY - CGFloat(profile.spacing.sectionGap) - 24, width: width - (inset * 2), height: 22)
+
+        let dueDatePicker = NSDatePicker(frame: NSRect(x: inset + 4, y: dueDateToggle.frame.minY - fieldGap - 30, width: 240, height: 28))
         dueDatePicker.datePickerStyle = .textFieldAndStepper
         dueDatePicker.datePickerElements = [.yearMonthDay]
         dueDatePicker.dateValue = Date()
@@ -237,6 +307,7 @@ public final class StatusBarController: NSObject {
         dueDateToggle.identifier = NSUserInterfaceItemIdentifier("taskDueDateToggle")
         dueDatePicker.identifier = NSUserInterfaceItemIdentifier("taskDueDatePicker")
 
+        container.addSubview(titleLabel)
         container.addSubview(titleField)
         container.addSubview(dueDateToggle)
         container.addSubview(dueDatePicker)
@@ -270,7 +341,7 @@ public final class StatusBarController: NSObject {
         panel.canChooseFiles = false
         panel.canCreateDirectories = true
         panel.allowsMultipleSelection = false
-        panel.prompt = "Choisir"
+        panel.prompt = settingsController.visualProfile().folderAffordance.actionLabel
         panel.message = "Sélectionne le dossier Obsidian de destination."
 
         if panel.runModal() == .OK, let url = panel.url {
@@ -292,18 +363,38 @@ public final class StatusBarController: NSObject {
 
     private func showInfo(_ title: String, detail: String) {
         let alert = NSAlert()
+        configureAlertWithoutIcon(alert)
         alert.alertStyle = .informational
-        alert.messageText = title
+        let cue = visualState(for: .success).nonColorCue
+        alert.messageText = cue.isEmpty ? title : "[\(cue)] \(title)"
         alert.informativeText = detail
         alert.runModal()
     }
 
     private func showError(_ title: String, detail: String) {
         let alert = NSAlert()
+        configureAlertWithoutIcon(alert)
         alert.alertStyle = .warning
-        alert.messageText = title
+        let cue = visualState(for: .error).nonColorCue
+        alert.messageText = cue.isEmpty ? title : "[\(cue)] \(title)"
         alert.informativeText = detail
         alert.runModal()
+    }
+
+    private func makeTextLabel(_ text: String,
+                               size: CGFloat,
+                               weight: NSFont.Weight,
+                               color: NSColor) -> NSTextField {
+        let label = NSTextField(labelWithString: text)
+        label.font = NSFont.systemFont(ofSize: size, weight: weight)
+        label.textColor = color
+        label.isBordered = false
+        label.drawsBackground = false
+        return label
+    }
+
+    private func configureAlertWithoutIcon(_ alert: NSAlert) {
+        alert.icon = NSImage(size: NSSize(width: 1, height: 1))
     }
     #endif
 }

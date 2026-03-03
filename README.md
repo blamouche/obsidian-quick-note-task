@@ -20,6 +20,7 @@ daily note file (`YYYY-MM-DD - Note.md`).
 - App status messaging now exposes explicit states (setup required, ready,
   recovery required) with actionable settings labels.
 - Build validation passes with `swift build`.
+- UI visual refresh (004) now defines shared typography/spacing/state style tokens, improves capture window readability, and removes decorative folder icon affordances while keeping destination actions explicit.
 
 ## Known limitation
 

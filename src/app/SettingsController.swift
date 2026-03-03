@@ -1,5 +1,19 @@
 import Foundation
 
+public struct SettingsVisualProfile: Equatable {
+    public let typography: TypographyScale
+    public let spacing: SpacingScale
+    public let folderAffordance: FolderAffordanceStyle
+
+    public init(typography: TypographyScale,
+                spacing: SpacingScale,
+                folderAffordance: FolderAffordanceStyle) {
+        self.typography = typography
+        self.spacing = spacing
+        self.folderAffordance = folderAffordance
+    }
+}
+
 public enum DestinationReadiness: Equatable {
     case notConfigured
     case configuredValid(URL)
@@ -33,5 +47,13 @@ public final class SettingsController {
         }
 
         return .configuredInvalid(destination)
+    }
+
+    public func visualProfile() -> SettingsVisualProfile {
+        SettingsVisualProfile(
+            typography: UIStyle.typography,
+            spacing: UIStyle.spacing,
+            folderAffordance: UIStyle.folderAffordance
+        )
     }
 }
