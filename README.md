@@ -61,7 +61,7 @@ swift run ObsidianQuickNoteTaskApp
 
 <!-- DMG_LINK_START -->
 
-Latest DMG: [https://github.com/blamouche/obsidian-quick-note-task/releases/download/0.0.3/ObsidianQuickNoteTask-0.0.3.dmg](https://github.com/blamouche/obsidian-quick-note-task/releases/download/0.0.3/ObsidianQuickNoteTask-0.0.3.dmg)
+Latest DMG: [https://github.com/blamouche/obsidian-quick-note-task/releases/download/0.0.4/ObsidianQuickNoteTask-0.0.4.dmg](https://github.com/blamouche/obsidian-quick-note-task/releases/download/0.0.4/ObsidianQuickNoteTask-0.0.4.dmg)
 Last update: 2026-03-03 (UTC)
 <!-- DMG_LINK_END -->
 
