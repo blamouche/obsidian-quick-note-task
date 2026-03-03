@@ -82,4 +82,40 @@ final class DailyNoteWriterIntegrationTests: XCTestCase {
         let content = try String(contentsOf: target, encoding: .utf8)
         XCTAssertTrue(content.contains("Before task\n\n---\n\n- [ ] Task after note 📅 2026-03-12"))
     }
+
+    func testQuickNoteSubmissionSucceedsFromCaptureControllerWhenDestinationConfigured() throws {
+        let suiteName = "test.capture.quicknote.success.\(UUID().uuidString)"
+        let defaults = UserDefaults(suiteName: suiteName)!
+        defer { defaults.removePersistentDomain(forName: suiteName) }
+        let store = DestinationStore(defaults: defaults, key: "destination")
+        let settings = SettingsController(destinationStore: store)
+        let dir = try makeTempDir()
+        try settings.selectDestination(dir)
+        let capture = CaptureWindowController(destinationStore: store)
+
+        let result = capture.submitQuickNote("From configured capture flow")
+
+        XCTAssertTrue(result)
+        XCTAssertNil(capture.lastErrorMessage)
+        XCTAssertNotNil(capture.lastOutputFile)
+    }
+
+    func testTaskSubmissionWithOptionalDueDateSucceedsFromCaptureControllerWhenConfigured() throws {
+        let suiteName = "test.capture.task.success.\(UUID().uuidString)"
+        let defaults = UserDefaults(suiteName: suiteName)!
+        defer { defaults.removePersistentDomain(forName: suiteName) }
+        let store = DestinationStore(defaults: defaults, key: "destination")
+        let settings = SettingsController(destinationStore: store)
+        let dir = try makeTempDir()
+        try settings.selectDestination(dir)
+        let capture = CaptureWindowController(destinationStore: store)
+        let dueDate = Calendar(identifier: .gregorian).date(from: DateComponents(year: 2026, month: 3, day: 10))
+
+        let result = capture.submitTask(title: "Configured task", dueDate: dueDate)
+
+        XCTAssertTrue(result)
+        XCTAssertNil(capture.lastErrorMessage)
+        let output = try String(contentsOf: capture.lastOutputFile!, encoding: .utf8)
+        XCTAssertTrue(output.contains("- [ ] Configured task 📅 2026-03-10"))
+    }
 }

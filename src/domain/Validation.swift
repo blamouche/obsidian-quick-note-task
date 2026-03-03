@@ -8,9 +8,9 @@ public enum ValidationError: Error, Equatable, LocalizedError {
     public var errorDescription: String? {
         switch self {
         case .emptyQuickNote:
-            return "Quick note text cannot be empty."
+            return "Quick note text cannot be empty or whitespace."
         case .emptyTaskTitle:
-            return "Task title cannot be empty."
+            return "Task title cannot be empty or whitespace."
         case .invalidDueDateFormat:
             return "Due date must use YYYY-MM-DD format."
         }
