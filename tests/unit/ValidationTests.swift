@@ -24,4 +24,16 @@ final class ValidationTests: XCTestCase {
             XCTAssertEqual(error as? ValidationError, .invalidDueDateFormat)
         }
     }
+
+    func testNormalizeOptionalDueDateReturnsNilWhenDisabled() {
+        let date = Calendar(identifier: .gregorian).date(from: DateComponents(year: 2026, month: 3, day: 9))
+        let normalized = Validation.normalizeOptionalDueDate(selected: date, enabled: false)
+        XCTAssertNil(normalized)
+    }
+
+    func testNormalizeOptionalDueDateReturnsDateWhenEnabled() {
+        let date = Calendar(identifier: .gregorian).date(from: DateComponents(year: 2026, month: 3, day: 9))
+        let normalized = Validation.normalizeOptionalDueDate(selected: date, enabled: true)
+        XCTAssertEqual(normalized, date)
+    }
 }

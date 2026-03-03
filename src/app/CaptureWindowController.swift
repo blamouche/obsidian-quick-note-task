@@ -41,7 +41,7 @@ public final class CaptureWindowController {
     }
 
     @discardableResult
-    public func submitTask(title: String, dueDateInput: String?) -> Bool {
+    public func submitTask(title: String, dueDate: Date?) -> Bool {
         guard let destination = destinationStore.loadDestinationURL() else {
             lastErrorMessage = "Destination folder is not configured."
             preservedDraft = title
@@ -49,7 +49,6 @@ public final class CaptureWindowController {
         }
 
         do {
-            let dueDate = try Validation.parseOptionalDueDate(dueDateInput)
             let file = try writer.appendTask(title: title,
                                              dueDate: dueDate,
                                              destinationDirectory: destination,
@@ -58,6 +57,18 @@ public final class CaptureWindowController {
             lastErrorMessage = nil
             preservedDraft = nil
             return true
+        } catch {
+            lastErrorMessage = error.localizedDescription
+            preservedDraft = title
+            return false
+        }
+    }
+
+    @discardableResult
+    public func submitTask(title: String, dueDateInput: String?) -> Bool {
+        do {
+            let parsed = try Validation.parseOptionalDueDate(dueDateInput)
+            return submitTask(title: title, dueDate: parsed)
         } catch {
             lastErrorMessage = error.localizedDescription
             preservedDraft = title

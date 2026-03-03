@@ -7,8 +7,12 @@ daily note file (`YYYY-MM-DD - Note.md`).
 
 - Feature specs, plan, contracts, and executable task breakdown are generated in
   `specs/001-menubar-obsidian-capture/`.
+- Date picker enhancement specs/plan/tasks are generated in
+  `specs/002-task-date-picker/`.
 - Swift package scaffold, core domain/services, app controllers, and test files
   are implemented.
+- Task creation UI now includes an optional native date picker instead of
+  manual date text input.
 - Build validation passes with `swift build`.
 
 ## Known limitation
