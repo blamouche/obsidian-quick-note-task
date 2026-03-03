@@ -51,7 +51,7 @@ bash <(curl -fsSL https://raw.githubusercontent.com/blamouche/obsidian-quick-not
 
 <!-- DMG_LINK_START -->
 
-Latest DMG: [https://github.com/blamouche/obsidian-quick-note-task/releases/download/0.0.6/ObsidianQuickNoteTask-0.0.6.dmg](https://github.com/blamouche/obsidian-quick-note-task/releases/download/0.0.6/ObsidianQuickNoteTask-0.0.6.dmg)
+Latest DMG: [https://github.com/blamouche/obsidian-quick-note-task/releases/download/0.0.7/ObsidianQuickNoteTask-0.0.7.dmg](https://github.com/blamouche/obsidian-quick-note-task/releases/download/0.0.7/ObsidianQuickNoteTask-0.0.7.dmg)
 Last update: 2026-03-03 (UTC)
 <!-- DMG_LINK_END -->
 
