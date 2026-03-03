@@ -45,7 +45,7 @@ xattr -dr com.apple.quarantine "/Applications/ObsidianQuickNoteTask.app"
 
 <!-- DMG_LINK_START -->
 
-Latest DMG: [https://github.com/blamouche/obsidian-quick-note-task/releases/download/0.0.4/ObsidianQuickNoteTask-0.0.4.dmg](https://github.com/blamouche/obsidian-quick-note-task/releases/download/0.0.4/ObsidianQuickNoteTask-0.0.4.dmg)
+Latest DMG: [https://github.com/blamouche/obsidian-quick-note-task/releases/download/0.0.5/ObsidianQuickNoteTask-0.0.5.dmg](https://github.com/blamouche/obsidian-quick-note-task/releases/download/0.0.5/ObsidianQuickNoteTask-0.0.5.dmg)
 Last update: 2026-03-03 (UTC)
 <!-- DMG_LINK_END -->
 
