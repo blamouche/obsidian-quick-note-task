@@ -1,0 +1,1 @@
+# obsidian-quick-note-task
