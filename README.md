@@ -9,10 +9,16 @@ daily note file (`YYYY-MM-DD - Note.md`).
   `specs/001-menubar-obsidian-capture/`.
 - Date picker enhancement specs/plan/tasks are generated in
   `specs/002-task-date-picker/`.
+- UX productivity enhancement specs/plan/tasks are generated in
+  `specs/003-ux-productivity/`.
 - Swift package scaffold, core domain/services, app controllers, and test files
   are implemented.
 - Task creation UI now includes an optional native date picker instead of
   manual date text input.
+- Menu UX now enforces configuration-first behavior:
+  `Quick Note` and `Task` are disabled until destination setup is valid.
+- App status messaging now exposes explicit states (setup required, ready,
+  recovery required) with actionable settings labels.
 - Build validation passes with `swift build`.
 
 ## Known limitation

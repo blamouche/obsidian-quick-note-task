@@ -3,6 +3,35 @@ import Foundation
 import AppKit
 #endif
 
+public enum AppStatusKind: Equatable {
+    case setupRequired
+    case ready
+    case recoveryRequired
+}
+
+public struct CaptureAvailabilityState: Equatable {
+    public let quickNoteEnabled: Bool
+    public let taskEnabled: Bool
+    public let statusKind: AppStatusKind
+    public let statusMessage: String
+    public let settingsTitle: String
+    public let blockedReason: String?
+
+    public init(quickNoteEnabled: Bool,
+                taskEnabled: Bool,
+                statusKind: AppStatusKind,
+                statusMessage: String,
+                settingsTitle: String,
+                blockedReason: String?) {
+        self.quickNoteEnabled = quickNoteEnabled
+        self.taskEnabled = taskEnabled
+        self.statusKind = statusKind
+        self.statusMessage = statusMessage
+        self.settingsTitle = settingsTitle
+        self.blockedReason = blockedReason
+    }
+}
+
 public enum StatusAction {
     case quickNote
     case task
@@ -13,14 +42,21 @@ public enum StatusAction {
 public final class StatusBarController: NSObject {
     private let captureController: CaptureWindowController
     private let settingsController: SettingsController
+    private var cachedAvailabilityState: CaptureAvailabilityState
     #if canImport(AppKit)
     private var statusItem: NSStatusItem?
+    private var menu: NSMenu?
+    private var menuStatusItem: NSMenuItem?
+    private var menuQuickNoteItem: NSMenuItem?
+    private var menuTaskItem: NSMenuItem?
+    private var menuSettingsItem: NSMenuItem?
     #endif
 
     public init(captureController: CaptureWindowController = .init(),
                 settingsController: SettingsController = .init()) {
         self.captureController = captureController
         self.settingsController = settingsController
+        self.cachedAvailabilityState = Self.availabilityState(for: settingsController.destinationReadiness())
         super.init()
     }
 
@@ -32,10 +68,17 @@ public final class StatusBarController: NSObject {
         item.button?.toolTip = "Obsidian Quick Note Task"
 
         let menu = NSMenu()
-        menu.addItem(NSMenuItem(title: "Quick Note", action: #selector(onQuickNote), keyEquivalent: "n"))
-        menu.addItem(NSMenuItem(title: "Task", action: #selector(onTask), keyEquivalent: "t"))
+        let statusEntry = NSMenuItem(title: "", action: nil, keyEquivalent: "")
+        statusEntry.isEnabled = false
+        menu.addItem(statusEntry)
         menu.addItem(.separator())
-        menu.addItem(NSMenuItem(title: "Settings", action: #selector(onSettings), keyEquivalent: ","))
+        let quickNoteEntry = NSMenuItem(title: "Quick Note", action: #selector(onQuickNote), keyEquivalent: "n")
+        let taskEntry = NSMenuItem(title: "Task", action: #selector(onTask), keyEquivalent: "t")
+        let settingsEntry = NSMenuItem(title: "Settings", action: #selector(onSettings), keyEquivalent: ",")
+        menu.addItem(quickNoteEntry)
+        menu.addItem(taskEntry)
+        menu.addItem(.separator())
+        menu.addItem(settingsEntry)
         menu.addItem(.separator())
         menu.addItem(NSMenuItem(title: "Quit", action: #selector(onQuit), keyEquivalent: "q"))
 
@@ -45,25 +88,96 @@ public final class StatusBarController: NSObject {
 
         item.menu = menu
         statusItem = item
+        self.menu = menu
+        menuStatusItem = statusEntry
+        menuQuickNoteItem = quickNoteEntry
+        menuTaskItem = taskEntry
+        menuSettingsItem = settingsEntry
+        refreshMenuState()
+        #endif
+    }
+
+    public func currentAvailabilityState() -> CaptureAvailabilityState {
+        let newState = Self.availabilityState(for: settingsController.destinationReadiness())
+        cachedAvailabilityState = newState
+        return newState
+    }
+
+    public func refreshMenuState() {
+        let state = currentAvailabilityState()
+        #if canImport(AppKit)
+        menuStatusItem?.title = state.statusMessage
+        menuQuickNoteItem?.isEnabled = state.quickNoteEnabled
+        menuTaskItem?.isEnabled = state.taskEnabled
+        menuSettingsItem?.title = state.settingsTitle
         #endif
     }
 
     public func handle(_ action: StatusAction) {
+        let state = currentAvailabilityState()
         switch action {
         case .quickNote:
+            guard state.quickNoteEnabled else {
+                _ = captureController.rejectUnavailableAction(draft: "Quick capture placeholder",
+                                                              reason: state.blockedReason ?? state.statusMessage)
+                return
+            }
             _ = captureController.submitQuickNote("Quick capture placeholder")
         case .task:
+            guard state.taskEnabled else {
+                _ = captureController.rejectUnavailableAction(draft: "Task capture placeholder",
+                                                              reason: state.blockedReason ?? state.statusMessage)
+                return
+            }
             _ = captureController.submitTask(title: "Task capture placeholder", dueDate: nil)
         case .settings:
             _ = settingsController.currentDestination()
         }
     }
 
+    private static func availabilityState(for readiness: DestinationReadiness) -> CaptureAvailabilityState {
+        switch readiness {
+        case .notConfigured:
+            return CaptureAvailabilityState(
+                quickNoteEnabled: false,
+                taskEnabled: false,
+                statusKind: .setupRequired,
+                statusMessage: "Configuration requise: choisis un dossier Obsidian.",
+                settingsTitle: "Configurer la destination...",
+                blockedReason: "Configure d'abord un dossier de destination dans Settings."
+            )
+        case let .configuredValid(url):
+            return CaptureAvailabilityState(
+                quickNoteEnabled: true,
+                taskEnabled: true,
+                statusKind: .ready,
+                statusMessage: "Prêt: destination active (\(url.lastPathComponent)).",
+                settingsTitle: "Settings",
+                blockedReason: nil
+            )
+        case .configuredInvalid:
+            return CaptureAvailabilityState(
+                quickNoteEnabled: false,
+                taskEnabled: false,
+                statusKind: .recoveryRequired,
+                statusMessage: "Destination indisponible: reconfiguration nécessaire.",
+                settingsTitle: "Reconfigurer la destination...",
+                blockedReason: "La destination actuelle est indisponible. Reconfigure le dossier."
+            )
+        }
+    }
+
     #if canImport(AppKit)
     @objc private func onQuickNote() {
+        let state = currentAvailabilityState()
+        guard state.quickNoteEnabled else {
+            showError("Action indisponible", detail: state.blockedReason ?? state.statusMessage)
+            return
+        }
+
         let alert = NSAlert()
         alert.messageText = "Quick Note"
-        alert.informativeText = "Saisis un texte brut à ajouter dans la note du jour."
+        alert.informativeText = "Capture rapide: saisis puis valide."
         alert.addButton(withTitle: "Add")
         alert.addButton(withTitle: "Cancel")
 
@@ -87,16 +201,22 @@ public final class StatusBarController: NSObject {
         guard response == .alertFirstButtonReturn else { return }
 
         if captureController.submitQuickNote(textView.string) {
-            showInfo("Quick note ajoutée", detail: captureController.lastOutputFile?.path ?? "")
+            showInfo("Ajout réussi", detail: captureController.lastOutputFile?.path ?? "")
         } else {
             showError("Échec de l'ajout", detail: captureController.lastErrorMessage ?? "Erreur inconnue")
         }
     }
 
     @objc private func onTask() {
+        let state = currentAvailabilityState()
+        guard state.taskEnabled else {
+            showError("Action indisponible", detail: state.blockedReason ?? state.statusMessage)
+            return
+        }
+
         let alert = NSAlert()
         alert.messageText = "Task"
-        alert.informativeText = "Titre obligatoire, échéance optionnelle via sélecteur."
+        alert.informativeText = "Titre requis, échéance optionnelle."
         alert.addButton(withTitle: "Add")
         alert.addButton(withTitle: "Cancel")
 
@@ -128,7 +248,7 @@ public final class StatusBarController: NSObject {
         let dueDate = Validation.normalizeOptionalDueDate(selected: dueDatePicker.dateValue, enabled: dueDateEnabled)
 
         if captureController.submitTask(title: titleField.stringValue, dueDate: dueDate) {
-            showInfo("Task ajoutée", detail: captureController.lastOutputFile?.path ?? "")
+            showInfo("Ajout réussi", detail: captureController.lastOutputFile?.path ?? "")
         } else {
             showError("Échec de l'ajout", detail: captureController.lastErrorMessage ?? "Erreur inconnue")
         }
@@ -157,9 +277,12 @@ public final class StatusBarController: NSObject {
             do {
                 try settingsController.selectDestination(url)
                 showInfo("Destination enregistrée", detail: url.path)
+                refreshMenuState()
             } catch {
                 showError("Impossible d'enregistrer la destination", detail: error.localizedDescription)
             }
+        } else {
+            refreshMenuState()
         }
     }
 

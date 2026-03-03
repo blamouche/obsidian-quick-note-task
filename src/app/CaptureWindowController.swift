@@ -4,6 +4,7 @@ public final class CaptureWindowController {
     private let destinationStore: DestinationStore
     private let writer: DailyNoteWriter
     private let dateProvider: DateProviding
+    private let logger: Logging
 
     public private(set) var lastErrorMessage: String?
     public private(set) var lastOutputFile: URL?
@@ -11,10 +12,12 @@ public final class CaptureWindowController {
 
     public init(destinationStore: DestinationStore = .init(),
                 writer: DailyNoteWriter = .init(),
-                dateProvider: DateProviding = SystemDateProvider()) {
+                dateProvider: DateProviding = SystemDateProvider(),
+                logger: Logging = Logger()) {
         self.destinationStore = destinationStore
         self.writer = writer
         self.dateProvider = dateProvider
+        self.logger = logger
     }
 
     @discardableResult
@@ -22,6 +25,7 @@ public final class CaptureWindowController {
         guard let destination = destinationStore.loadDestinationURL() else {
             lastErrorMessage = "Destination folder is not configured."
             preservedDraft = text
+            logger.error("Quick note blocked: destination not configured, draft=\(logger.redact(text))")
             return false
         }
 
@@ -32,10 +36,12 @@ public final class CaptureWindowController {
             lastOutputFile = file
             lastErrorMessage = nil
             preservedDraft = nil
+            logger.info("Quick note appended to \(file.path)")
             return true
         } catch {
             lastErrorMessage = error.localizedDescription
             preservedDraft = text
+            logger.error("Quick note append failed: \(error.localizedDescription), draft=\(logger.redact(text))")
             return false
         }
     }
@@ -45,6 +51,7 @@ public final class CaptureWindowController {
         guard let destination = destinationStore.loadDestinationURL() else {
             lastErrorMessage = "Destination folder is not configured."
             preservedDraft = title
+            logger.error("Task blocked: destination not configured, draft=\(logger.redact(title))")
             return false
         }
 
@@ -56,10 +63,12 @@ public final class CaptureWindowController {
             lastOutputFile = file
             lastErrorMessage = nil
             preservedDraft = nil
+            logger.info("Task appended to \(file.path)")
             return true
         } catch {
             lastErrorMessage = error.localizedDescription
             preservedDraft = title
+            logger.error("Task append failed: \(error.localizedDescription), draft=\(logger.redact(title))")
             return false
         }
     }
@@ -72,7 +81,16 @@ public final class CaptureWindowController {
         } catch {
             lastErrorMessage = error.localizedDescription
             preservedDraft = title
+            logger.error("Task validation failed: \(error.localizedDescription), draft=\(logger.redact(title))")
             return false
         }
+    }
+
+    @discardableResult
+    public func rejectUnavailableAction(draft: String?, reason: String) -> Bool {
+        lastErrorMessage = reason
+        preservedDraft = draft
+        logger.error("Capture action blocked: \(reason), draft=\(logger.redact(draft ?? ""))")
+        return false
     }
 }
