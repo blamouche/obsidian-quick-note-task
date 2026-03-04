@@ -127,6 +127,49 @@ public final class DailyNoteWriter {
         }
     }
 
+    public func insertTaskLineAfter(fileURL: URL,
+                                    vaultRoot: URL,
+                                    lineNumber: Int,
+                                    expectedRawLine: String,
+                                    lineToInsert: String) throws {
+        guard Validation.isContained(fileURL, in: vaultRoot) else {
+            throw DailyNoteWriterError.invalidVaultScope
+        }
+
+        let existing: String
+        do {
+            existing = try String(contentsOf: fileURL, encoding: .utf8)
+        } catch {
+            throw DailyNoteWriterError.unableToReadFile
+        }
+
+        var lines = existing.components(separatedBy: .newlines)
+        let index = lineNumber - 1
+
+        let insertionBaseIndex: Int
+        if index >= 0, index < lines.count, lines[index] == expectedRawLine {
+            insertionBaseIndex = index
+        } else if let fallbackIndex = lines.firstIndex(of: expectedRawLine) {
+            insertionBaseIndex = fallbackIndex
+        } else {
+            throw DailyNoteWriterError.staleTaskReference
+        }
+
+        let insertionIndex = min(insertionBaseIndex + 1, lines.count)
+        lines.insert(lineToInsert, at: insertionIndex)
+
+        let payload = lines.joined(separator: "\n")
+        guard let data = payload.data(using: .utf8) else {
+            throw DailyNoteWriterError.unableToWriteFile
+        }
+
+        do {
+            try data.write(to: fileURL, options: .atomic)
+        } catch {
+            throw DailyNoteWriterError.unableToWriteFile
+        }
+    }
+
     private func appendRendered(_ rendered: String, destinationDirectory: URL, date: Date) throws -> URL {
         var isDirectory: ObjCBool = false
         guard FileManager.default.fileExists(atPath: destinationDirectory.path, isDirectory: &isDirectory), isDirectory.boolValue else {

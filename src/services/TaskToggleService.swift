@@ -91,7 +91,14 @@ public final class TaskToggleService {
 
         do {
             let nextLine = nextOccurrenceLine(from: task, nextDueDate: nextDueDate, recurrence: recurrence)
-            try writer.appendTaskLine(fileURL: task.source.fileURL, vaultRoot: vaultURL, line: nextLine)
+            let completedLine = markCompleted(line: task.source.rawLine)
+            try writer.insertTaskLineAfter(
+                fileURL: task.source.fileURL,
+                vaultRoot: vaultURL,
+                lineNumber: task.source.lineNumber,
+                expectedRawLine: completedLine,
+                lineToInsert: nextLine
+            )
             return TaskToggleResult(
                 completionUpdated: true,
                 recurrenceRescheduled: true,
