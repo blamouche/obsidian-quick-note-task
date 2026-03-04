@@ -6,6 +6,16 @@ Auto-generated release notes by CI on each update of `main`.
 
 ### Added
 - insert recurring next task directly below source line
+- add every weekday recurrence support
+- add dropdown task management with recurrence and status badge
+- add vault and default folder configuration window
+- show app version in status menu line
+- add one-command installer for latest DMG
+- polish UI copy and revamp README with branded header
+- visual refresh and remove folder icon from windows
+- enforce configuration-first productivity flow
+- add task date picker UI and renumber spec to 002
+- implement macOS menubar Obsidian quick note/task flow
 
 ## 0.0.14 (2026-03-04)
 
