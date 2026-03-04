@@ -38,4 +38,7 @@ Swift 5.10: Follow standard conventions
 
 
 <!-- MANUAL ADDITIONS START -->
+## Agent Workflow Rule
+
+- Commit automatically after each completed development task.
 <!-- MANUAL ADDITIONS END -->
