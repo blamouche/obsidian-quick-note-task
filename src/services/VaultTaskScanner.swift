@@ -73,21 +73,31 @@ public final class VaultTaskScanner {
             .replacingOccurrences(of: "\\s+", with: " ", options: .regularExpression)
             .trimmingCharacters(in: .whitespacesAndNewlines)
 
-        if normalizedLower == "every day" || normalizedLower == "daily" {
+        if normalizedLower == "every day" ||
+            normalizedLower.hasPrefix("every day ") ||
+            normalizedLower == "daily" {
             return RecurrenceDescriptor(rawRule: raw, frequency: .daily)
         }
         if normalizedLower == "every weekday" ||
+            normalizedLower.hasPrefix("every weekday ") ||
             normalizedLower == "weekdays" ||
-            normalizedLower == "every weekdays" {
+            normalizedLower == "every weekdays" ||
+            normalizedLower.hasPrefix("every weekdays ") {
             return RecurrenceDescriptor(rawRule: raw, frequency: .weekday)
         }
-        if normalizedLower == "every week" || normalizedLower == "weekly" {
+        if normalizedLower == "every week" ||
+            normalizedLower.hasPrefix("every week ") ||
+            normalizedLower == "weekly" {
             return RecurrenceDescriptor(rawRule: raw, frequency: .weekly)
         }
-        if normalizedLower == "every month" || normalizedLower == "monthly" {
+        if normalizedLower == "every month" ||
+            normalizedLower.hasPrefix("every month ") ||
+            normalizedLower == "monthly" {
             return RecurrenceDescriptor(rawRule: raw, frequency: .monthly)
         }
-        if normalizedLower == "every year" || normalizedLower == "yearly" {
+        if normalizedLower == "every year" ||
+            normalizedLower.hasPrefix("every year ") ||
+            normalizedLower == "yearly" {
             return RecurrenceDescriptor(rawRule: raw, frequency: .yearly)
         }
 

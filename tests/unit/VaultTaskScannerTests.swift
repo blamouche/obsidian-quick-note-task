@@ -110,4 +110,14 @@ final class VaultTaskScannerTests: XCTestCase {
         let pluralVariant = scanner.parseRecurrence(from: "- [ ] Task 📅 2026-03-06 🔁 every weekdays")
         XCTAssertEqual(pluralVariant?.frequency, .weekday)
     }
+
+    func testWeekdayRecurrenceParsingHandlesSuffixContent() {
+        let scanner = VaultTaskScanner()
+
+        let withTag = scanner.parseRecurrence(from: "- [ ] Task 📅 2026-03-06 🔁 every weekday #work")
+        XCTAssertEqual(withTag?.frequency, .weekday)
+
+        let withTextSuffix = scanner.parseRecurrence(from: "- [ ] Task 📅 2026-03-06 🔁 every weekday when done")
+        XCTAssertEqual(withTextSuffix?.frequency, .weekday)
+    }
 }
