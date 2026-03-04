@@ -1,0 +1,53 @@
+name: Versioning
+
+on:
+  push:
+    branches:
+      - '**'
+  workflow_dispatch:
+    inputs:
+      major_bump:
+        description: "Increment major version (X.0.0)"
+        required: false
+        default: false
+        type: boolean
+
+permissions:
+  contents: write
+
+jobs:
+  bump-version:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Bump version
+        id: bump
+        env:
+          BRANCH_NAME: ${{ github.ref_name }}
+          BEFORE_SHA: ${{ github.event.before }}
+          AFTER_SHA: ${{ github.sha }}
+          MAJOR_BUMP: ${{ github.event_name == 'workflow_dispatch' && inputs.major_bump || false }}
+        run: |
+          chmod +x ./scripts/release/bump_version.sh
+          OUTPUT="$(bash ./scripts/release/bump_version.sh)"
+          echo "$OUTPUT"
+          VERSION="$(echo "$OUTPUT" | awk -F= '/^version=/{print $2}')"
+          echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
+
+      - name: Commit version update
+        run: |
+          if git diff --quiet -- VERSION .versioning/branches; then
+            echo "Version already up to date"
+            exit 0
+          fi
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add VERSION .versioning/branches
+          git commit -m "chore: bump version to ${{ steps.bump.outputs.version }} [skip ci]"
+          git push

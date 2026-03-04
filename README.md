@@ -112,7 +112,18 @@ GitHub Actions (`.github/workflows/release.yml`) automatically:
 - builds a production app bundle,
 - packages a DMG,
 - publishes it to GitHub Releases,
-- updates this README download link.
+- updates this README download link,
+- updates [`Releases.md`](Releases.md) with versioned "Added" notes.
+
+## Versioning Strategy
+
+Versioning follows `X.Y.Z` with CI automation:
+
+- `X.0.0` (major) only on explicit manual request (`workflow_dispatch` with `major_bump=true` in `.github/workflows/versioning.yml`).
+- `0.Y.0` (minor) automatically when a new branch is seen for the first time.
+- `0.Y.Z` (patch) automatically on each commit push (patch increment based on pushed commits count).
+
+Canonical version is stored in [`VERSION`](VERSION). Branch creation markers are tracked in `.versioning/branches/`.
 
 ## Current Limitations
 

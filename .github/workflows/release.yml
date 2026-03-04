@@ -1,9 +1,11 @@
 name: Build DMG
 
 on:
-  push:
-    branches:
-      - main
+  workflow_run:
+    workflows:
+      - Versioning
+    types:
+      - completed
   workflow_dispatch:
 
 permissions:
@@ -11,7 +13,10 @@ permissions:
 
 jobs:
   build-dmg:
-    if: github.actor != 'github-actions[bot]'
+    if: |
+      github.event_name == 'workflow_dispatch' ||
+      (github.event.workflow_run.conclusion == 'success' &&
+       github.event.workflow_run.head_branch == 'main')
     runs-on: macos-14
     env:
       APP_BUNDLE_NAME: ObsidianQuickNoteTask
@@ -23,11 +28,16 @@ jobs:
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
+          ref: main
 
       - name: Compute build metadata
         id: meta
         run: |
-          VERSION="0.0.${GITHUB_RUN_NUMBER}"
+          VERSION="$(tr -d '[:space:]' < VERSION)"
+          if [[ ! "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "Invalid VERSION: $VERSION"
+            exit 1
+          fi
           DMG_NAME="ObsidianQuickNoteTask-${VERSION}.dmg"
           echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
           echo "dmg_name=$DMG_NAME" >> "$GITHUB_OUTPUT"
@@ -92,15 +102,21 @@ jobs:
 
           mv README.md.tmp README.md
 
-      - name: Commit README update
+      - name: Update Releases log
+        env:
+          VERSION: ${{ steps.meta.outputs.version }}
         run: |
-          if git diff --quiet -- README.md; then
-            echo "README already up to date"
+          bash ./scripts/release/update_releases_md.sh "$VERSION"
+
+      - name: Commit README and Releases updates
+        run: |
+          if git diff --quiet -- README.md Releases.md; then
+            echo "README and Releases are already up to date"
             exit 0
           fi
 
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add README.md
-          git commit -m "docs: update DMG link in README [skip ci]"
+          git add README.md Releases.md
+          git commit -m "docs: update DMG link and releases log [skip ci]"
           git push
