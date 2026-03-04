@@ -41,4 +41,9 @@ Swift 5.10: Follow standard conventions
 ## Agent Workflow Rule
 
 - Commit automatically after each completed development task.
+- Follow semantic versioning `X.Y.Z` using the repository automation.
+- On first push of a new branch: increment minor version (`0.Y.0`).
+- On each commit push: increment patch version (`0.Y.Z`).
+- Major version bump (`X.0.0`) only on explicit user request.
+- On each commit, update release notes by regenerating `Releases.md` (via `scripts/release/update_releases_md.sh`) before committing.
 <!-- MANUAL ADDITIONS END -->
