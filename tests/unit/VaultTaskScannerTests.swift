@@ -87,4 +87,17 @@ final class VaultTaskScannerTests: XCTestCase {
         let expected = ISO8601DateFormatter().date(from: "2026-03-10T00:00:00Z")!
         XCTAssertEqual(nextDate, expected)
     }
+
+    func testWeekdayRecurrenceSkipsWeekend() {
+        let scanner = VaultTaskScanner()
+        let recurrence = scanner.parseRecurrence(from: "- [ ] Task 📅 2026-03-06 🔁 every weekday")
+
+        XCTAssertNotNil(recurrence)
+        XCTAssertEqual(recurrence?.frequency, .weekday)
+
+        let friday = ISO8601DateFormatter().date(from: "2026-03-06T00:00:00Z")!
+        let nextDate = scanner.nextDueDate(from: recurrence!, baseDate: friday)
+        let expectedMonday = ISO8601DateFormatter().date(from: "2026-03-09T00:00:00Z")!
+        XCTAssertEqual(nextDate, expectedMonday)
+    }
 }

@@ -340,6 +340,8 @@ public final class StatusBarController: NSObject {
         switch label {
         case "Every day":
             return "every day"
+        case "Every weekday":
+            return "every weekday"
         case "Every week":
             return "every week"
         case "Every month":
@@ -785,6 +787,7 @@ public final class StatusBarController: NSObject {
         ), pullsDown: false)
         recurrencePicker.addItems(withTitles: [
             "Every day",
+            "Every weekday",
             "Every week",
             "Every month",
             "Every year",

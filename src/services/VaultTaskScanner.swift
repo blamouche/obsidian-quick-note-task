@@ -73,6 +73,9 @@ public final class VaultTaskScanner {
         if lower == "every day" || lower == "daily" {
             return RecurrenceDescriptor(rawRule: raw, frequency: .daily)
         }
+        if lower == "every weekday" || lower == "weekdays" {
+            return RecurrenceDescriptor(rawRule: raw, frequency: .weekday)
+        }
         if lower == "every week" || lower == "weekly" {
             return RecurrenceDescriptor(rawRule: raw, frequency: .weekly)
         }
@@ -103,6 +106,8 @@ public final class VaultTaskScanner {
         switch frequency {
         case .daily:
             return calendar.date(byAdding: .day, value: 1, to: base)
+        case .weekday:
+            return nextWeekday(after: base)
         case .weekly:
             return calendar.date(byAdding: .day, value: 7, to: base)
         case .monthly:
@@ -112,6 +117,19 @@ public final class VaultTaskScanner {
         case .customDays(let days):
             return calendar.date(byAdding: .day, value: days, to: base)
         }
+    }
+
+    private func nextWeekday(after base: Date) -> Date? {
+        for offset in 1...7 {
+            guard let candidate = calendar.date(byAdding: .day, value: offset, to: base) else {
+                continue
+            }
+            let weekday = calendar.component(.weekday, from: candidate)
+            if weekday >= 2 && weekday <= 6 {
+                return candidate
+            }
+        }
+        return nil
     }
 
     private func markdownFilesUnderVault(_ vaultURL: URL) -> [URL] {

@@ -14,6 +14,7 @@ public struct TaskSourceReference: Equatable {
 
 public enum RecurrenceFrequency: Equatable {
     case daily
+    case weekday
     case weekly
     case monthly
     case yearly
