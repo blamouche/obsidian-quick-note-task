@@ -2,7 +2,7 @@
 
 Auto-generated release notes by CI on each update of `main`.
 
-## 0.0.14 (2026-03-04)
+## 1.0.0 (2026-03-04)
 
 ### Added
 - No feature commit detected for this version.
