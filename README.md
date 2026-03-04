@@ -60,7 +60,10 @@ Supported recurrence rules:
 - `🔁 every week` or `🔁 weekly`
 - `🔁 every month` or `🔁 monthly`
 - `🔁 every year` or `🔁 yearly`
-- `🔁 every N days` (example: `🔁 every 3 days`)
+- `🔁 every N day(s)` (example: `🔁 every 3 days`)
+- `🔁 every N week(s)` (example: `🔁 every 2 weeks`)
+- `🔁 every N month(s)` (example: `🔁 every 2 months`)
+- `🔁 every N year(s)` (example: `🔁 every 2 years`)
 
 Example:
 
