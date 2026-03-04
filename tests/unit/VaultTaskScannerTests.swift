@@ -100,4 +100,14 @@ final class VaultTaskScannerTests: XCTestCase {
         let expectedMonday = ISO8601DateFormatter().date(from: "2026-03-09T00:00:00Z")!
         XCTAssertEqual(nextDate, expectedMonday)
     }
+
+    func testWeekdayRecurrenceParsingHandlesSpacingAndPluralVariants() {
+        let scanner = VaultTaskScanner()
+
+        let withExtraSpaces = scanner.parseRecurrence(from: "- [ ] Task 📅 2026-03-06 🔁 every   weekday")
+        XCTAssertEqual(withExtraSpaces?.frequency, .weekday)
+
+        let pluralVariant = scanner.parseRecurrence(from: "- [ ] Task 📅 2026-03-06 🔁 every weekdays")
+        XCTAssertEqual(pluralVariant?.frequency, .weekday)
+    }
 }

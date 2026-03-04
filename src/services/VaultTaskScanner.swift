@@ -69,28 +69,33 @@ public final class VaultTaskScanner {
 
         let raw = String(text[range]).trimmingCharacters(in: .whitespacesAndNewlines)
         let lower = raw.lowercased()
+        let normalizedLower = lower
+            .replacingOccurrences(of: "\\s+", with: " ", options: .regularExpression)
+            .trimmingCharacters(in: .whitespacesAndNewlines)
 
-        if lower == "every day" || lower == "daily" {
+        if normalizedLower == "every day" || normalizedLower == "daily" {
             return RecurrenceDescriptor(rawRule: raw, frequency: .daily)
         }
-        if lower == "every weekday" || lower == "weekdays" {
+        if normalizedLower == "every weekday" ||
+            normalizedLower == "weekdays" ||
+            normalizedLower == "every weekdays" {
             return RecurrenceDescriptor(rawRule: raw, frequency: .weekday)
         }
-        if lower == "every week" || lower == "weekly" {
+        if normalizedLower == "every week" || normalizedLower == "weekly" {
             return RecurrenceDescriptor(rawRule: raw, frequency: .weekly)
         }
-        if lower == "every month" || lower == "monthly" {
+        if normalizedLower == "every month" || normalizedLower == "monthly" {
             return RecurrenceDescriptor(rawRule: raw, frequency: .monthly)
         }
-        if lower == "every year" || lower == "yearly" {
+        if normalizedLower == "every year" || normalizedLower == "yearly" {
             return RecurrenceDescriptor(rawRule: raw, frequency: .yearly)
         }
 
         let daysRegex = try? NSRegularExpression(pattern: "every\\s+(\\d+)\\s+days")
         if let daysRegex,
-           let match = daysRegex.firstMatch(in: lower, range: NSRange(location: 0, length: lower.utf16.count)),
-           let range = Range(match.range(at: 1), in: lower),
-           let value = Int(lower[range]), value > 0 {
+           let match = daysRegex.firstMatch(in: normalizedLower, range: NSRange(location: 0, length: normalizedLower.utf16.count)),
+           let range = Range(match.range(at: 1), in: normalizedLower),
+           let value = Int(normalizedLower[range]), value > 0 {
             return RecurrenceDescriptor(rawRule: raw, frequency: .customDays(value))
         }
 
