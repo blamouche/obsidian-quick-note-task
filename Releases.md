@@ -2,7 +2,7 @@
 
 Auto-generated release notes by CI on each update of `main`.
 
-## 1.0.6 (2026-03-04)
+## 1.0.7 (2026-03-04)
 
 ### Added
 - insert recurring next task directly below source line
