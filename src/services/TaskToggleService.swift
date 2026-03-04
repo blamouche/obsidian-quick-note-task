@@ -134,10 +134,31 @@ public final class TaskToggleService {
         formatter.dateFormat = "yyyy-MM-dd"
 
         var base = "- [ ] \(task.title) 📅 \(formatter.string(from: nextDueDate))"
-        if !recurrence.rawRule.isEmpty {
-            base += " 🔁 \(recurrence.rawRule)"
+        if let normalizedRule = normalizedRecurrenceRule(for: recurrence) {
+            base += " 🔁 \(normalizedRule)"
         }
 
         return base
+    }
+
+    private func normalizedRecurrenceRule(for recurrence: RecurrenceDescriptor) -> String? {
+        guard let frequency = recurrence.frequency else {
+            return nil
+        }
+
+        switch frequency {
+        case .daily:
+            return "every day"
+        case .weekday:
+            return "every weekday"
+        case .weekly:
+            return "every week"
+        case .monthly:
+            return "every month"
+        case .yearly:
+            return "every year"
+        case .customDays(let days):
+            return "every \(days) days"
+        }
     }
 }

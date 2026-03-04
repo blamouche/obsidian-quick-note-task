@@ -88,6 +88,27 @@ final class TaskSyncIntegrationTests: XCTestCase {
         XCTAssertTrue(content.contains("- [ ] Recur weekday 📅 2026-03-09 🔁 every weekday"))
     }
 
+    func testToggleRecurringTaskNormalizesRuleAndRemovesEmbeddedOldDateMetadata() throws {
+        let vault = try makeTempDir()
+        let file = vault.appendingPathComponent("tasks.md")
+        try "- [ ] Check tomorrow's agenda 📅 2026-03-04 🔁 every weekday 🏁 delete 📅 2026-03-04"
+            .data(using: .utf8)?
+            .write(to: file)
+        let fixedDate = ISO8601DateFormatter().date(from: "2026-03-04T10:00:00Z")!
+        let scanner = VaultTaskScanner(dateProvider: FixedDateProvider(fixedDate))
+        let toggle = TaskToggleService(scanner: scanner)
+
+        let task = try XCTUnwrap(scanner.scanDueTasks(vaultURL: vault, exclusionText: nil).first)
+        let result = toggle.toggleComplete(task: task, vaultURL: vault)
+
+        XCTAssertTrue(result.completionUpdated)
+        XCTAssertTrue(result.recurrenceRescheduled)
+
+        let lines = try String(contentsOf: file, encoding: .utf8).components(separatedBy: .newlines)
+        XCTAssertEqual(lines[0], "- [x] Check tomorrow's agenda 📅 2026-03-04 🔁 every weekday 🏁 delete 📅 2026-03-04")
+        XCTAssertEqual(lines[1], "- [ ] Check tomorrow's agenda 📅 2026-03-05 🔁 every weekday")
+    }
+
     func testToggleWithInvalidRecurrenceKeepsCompletionAndWarns() throws {
         let vault = try makeTempDir()
         let file = vault.appendingPathComponent("tasks.md")
