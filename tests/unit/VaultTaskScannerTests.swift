@@ -120,4 +120,40 @@ final class VaultTaskScannerTests: XCTestCase {
         let withTextSuffix = scanner.parseRecurrence(from: "- [ ] Task 📅 2026-03-06 🔁 every weekday when done")
         XCTAssertEqual(withTextSuffix?.frequency, .weekday)
     }
+
+    func testCustomMonthIntervalParsingAndNextDate() {
+        let scanner = VaultTaskScanner()
+        let recurrence = scanner.parseRecurrence(from: "- [ ] Task 📅 2026-03-03 🔁 every 2 months")
+
+        XCTAssertEqual(recurrence?.frequency, .customInterval(2, .month))
+
+        let baseDate = ISO8601DateFormatter().date(from: "2026-03-03T00:00:00Z")!
+        let nextDate = scanner.nextDueDate(from: recurrence!, baseDate: baseDate)
+        let expected = ISO8601DateFormatter().date(from: "2026-05-03T00:00:00Z")!
+        XCTAssertEqual(nextDate, expected)
+    }
+
+    func testCustomWeekIntervalParsingAndNextDate() {
+        let scanner = VaultTaskScanner()
+        let recurrence = scanner.parseRecurrence(from: "- [ ] Task 📅 2026-03-03 🔁 every 3 weeks")
+
+        XCTAssertEqual(recurrence?.frequency, .customInterval(3, .week))
+
+        let baseDate = ISO8601DateFormatter().date(from: "2026-03-03T00:00:00Z")!
+        let nextDate = scanner.nextDueDate(from: recurrence!, baseDate: baseDate)
+        let expected = ISO8601DateFormatter().date(from: "2026-03-24T00:00:00Z")!
+        XCTAssertEqual(nextDate, expected)
+    }
+
+    func testCustomYearIntervalParsingAndNextDate() {
+        let scanner = VaultTaskScanner()
+        let recurrence = scanner.parseRecurrence(from: "- [ ] Task 📅 2026-03-03 🔁 every 2 years")
+
+        XCTAssertEqual(recurrence?.frequency, .customInterval(2, .year))
+
+        let baseDate = ISO8601DateFormatter().date(from: "2026-03-03T00:00:00Z")!
+        let nextDate = scanner.nextDueDate(from: recurrence!, baseDate: baseDate)
+        let expected = ISO8601DateFormatter().date(from: "2028-03-03T00:00:00Z")!
+        XCTAssertEqual(nextDate, expected)
+    }
 }

@@ -128,6 +128,25 @@ final class TaskSyncIntegrationTests: XCTestCase {
         XCTAssertTrue(content.contains("- [x] Weird recur"))
     }
 
+    func testToggleCustomMonthRecurrenceSchedulesNextOccurrence() throws {
+        let vault = try makeTempDir()
+        let file = vault.appendingPathComponent("tasks.md")
+        try "- [ ] Budget review 📅 2026-03-03 🔁 every 2 months".data(using: .utf8)?.write(to: file)
+        let fixedDate = ISO8601DateFormatter().date(from: "2026-03-03T10:00:00Z")!
+        let scanner = VaultTaskScanner(dateProvider: FixedDateProvider(fixedDate))
+        let toggle = TaskToggleService(scanner: scanner)
+
+        let task = scanner.scanDueTasks(vaultURL: vault, exclusionText: nil)[0]
+        let result = toggle.toggleComplete(task: task, vaultURL: vault)
+
+        XCTAssertTrue(result.completionUpdated)
+        XCTAssertTrue(result.recurrenceRescheduled)
+
+        let lines = try String(contentsOf: file, encoding: .utf8).components(separatedBy: .newlines)
+        XCTAssertEqual(lines[0], "- [x] Budget review 📅 2026-03-03 🔁 every 2 months")
+        XCTAssertEqual(lines[1], "- [ ] Budget review 📅 2026-05-03 🔁 every 2 months")
+    }
+
     func testToggleWriteFailureKeepsTaskUnchecked() throws {
         let vault = try makeTempDir()
         let file = vault.appendingPathComponent("tasks.md")

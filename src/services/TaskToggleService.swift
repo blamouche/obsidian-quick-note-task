@@ -159,6 +159,17 @@ public final class TaskToggleService {
             return "every year"
         case .customDays(let days):
             return "every \(days) days"
+        case .customInterval(let value, let unit):
+            switch unit {
+            case .day:
+                return "every \(value) \(value == 1 ? "day" : "days")"
+            case .week:
+                return "every \(value) \(value == 1 ? "week" : "weeks")"
+            case .month:
+                return "every \(value) \(value == 1 ? "month" : "months")"
+            case .year:
+                return "every \(value) \(value == 1 ? "year" : "years")"
+            }
         }
     }
 }

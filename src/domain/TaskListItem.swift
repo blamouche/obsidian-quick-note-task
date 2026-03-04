@@ -12,6 +12,13 @@ public struct TaskSourceReference: Equatable {
     }
 }
 
+public enum RecurrenceIntervalUnit: Equatable {
+    case day
+    case week
+    case month
+    case year
+}
+
 public enum RecurrenceFrequency: Equatable {
     case daily
     case weekday
@@ -19,6 +26,7 @@ public enum RecurrenceFrequency: Equatable {
     case monthly
     case yearly
     case customDays(Int)
+    case customInterval(Int, RecurrenceIntervalUnit)
 }
 
 public struct RecurrenceDescriptor: Equatable {

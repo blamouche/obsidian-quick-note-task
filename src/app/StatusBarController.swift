@@ -350,6 +350,8 @@ public final class StatusBarController: NSObject {
             return "every year"
         case "Every 3 days":
             return "every 3 days"
+        case "Every 2 months":
+            return "every 2 months"
         default:
             return "every day"
         }
@@ -791,7 +793,8 @@ public final class StatusBarController: NSObject {
             "Every week",
             "Every month",
             "Every year",
-            "Every 3 days"
+            "Every 3 days",
+            "Every 2 months"
         ])
         recurrencePicker.selectItem(at: 0)
         recurrencePicker.isEnabled = false

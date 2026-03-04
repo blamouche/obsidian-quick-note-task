@@ -101,12 +101,8 @@ public final class VaultTaskScanner {
             return RecurrenceDescriptor(rawRule: raw, frequency: .yearly)
         }
 
-        let daysRegex = try? NSRegularExpression(pattern: "every\\s+(\\d+)\\s+days")
-        if let daysRegex,
-           let match = daysRegex.firstMatch(in: normalizedLower, range: NSRange(location: 0, length: normalizedLower.utf16.count)),
-           let range = Range(match.range(at: 1), in: normalizedLower),
-           let value = Int(normalizedLower[range]), value > 0 {
-            return RecurrenceDescriptor(rawRule: raw, frequency: .customDays(value))
+        if let customFrequency = parseCustomIntervalFrequency(from: normalizedLower) {
+            return RecurrenceDescriptor(rawRule: raw, frequency: customFrequency)
         }
 
         return RecurrenceDescriptor(rawRule: raw, frequency: nil)
@@ -131,7 +127,60 @@ public final class VaultTaskScanner {
             return calendar.date(byAdding: .year, value: 1, to: base)
         case .customDays(let days):
             return calendar.date(byAdding: .day, value: days, to: base)
+        case .customInterval(let value, let unit):
+            switch unit {
+            case .day:
+                return calendar.date(byAdding: .day, value: value, to: base)
+            case .week:
+                return calendar.date(byAdding: .weekOfYear, value: value, to: base)
+            case .month:
+                return calendar.date(byAdding: .month, value: value, to: base)
+            case .year:
+                return calendar.date(byAdding: .year, value: value, to: base)
+            }
         }
+    }
+
+    private func parseCustomIntervalFrequency(from normalizedLower: String) -> RecurrenceFrequency? {
+        let regex = try? NSRegularExpression(
+            pattern: "^every\\s+(\\d+)\\s+(day|days|week|weeks|month|months|year|years)(?:\\s+.*)?$"
+        )
+        guard let regex,
+              let match = regex.firstMatch(
+                in: normalizedLower,
+                range: NSRange(location: 0, length: normalizedLower.utf16.count)
+              ),
+              let valueRange = Range(match.range(at: 1), in: normalizedLower),
+              let unitRange = Range(match.range(at: 2), in: normalizedLower),
+              let value = Int(normalizedLower[valueRange]),
+              value > 0 else {
+            return nil
+        }
+
+        let unitText = String(normalizedLower[unitRange])
+        let unit: RecurrenceIntervalUnit?
+        switch unitText {
+        case "day", "days":
+            unit = .day
+        case "week", "weeks":
+            unit = .week
+        case "month", "months":
+            unit = .month
+        case "year", "years":
+            unit = .year
+        default:
+            unit = nil
+        }
+
+        guard let unit else {
+            return nil
+        }
+
+        if unit == .day {
+            return .customDays(value)
+        }
+
+        return .customInterval(value, unit)
     }
 
     private func nextWeekday(after base: Date) -> Date? {
