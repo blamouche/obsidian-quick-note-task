@@ -1,0 +1,2 @@
+2026-03-09 17:19:30 +0100 | agent | session init: checked/created prompt-hub memory+lessons and ran auto-update check | files: .prompt-hub/memory.md,.prompt-hub/lessons.md,.prompt-hub/.last-update-check | success | next: git fetch/pull --rebase
+2026-03-09 17:20:13 +0100 | agent | git update local repo via fetch + pull --rebase; resolved conflict by keeping deletion of Releases.md; rebase completed | commands: git fetch, git pull --rebase, git rm Releases.md, git rebase --continue | success | next: optional push local commits
