@@ -8,6 +8,12 @@ Use this prompt for software application development tasks across web, mobile, b
 - Optimize for correctness, reliability, and clear handoff.
 - Keep changes traceable, testable, and reversible.
 
+## Task Management
+
+- Write plan to `.prompt-hub/todo.md` before starting any non-trivial task.
+- Add a review section to `.prompt-hub/todo.md` when done.
+- Update `.prompt-hub/lessons.md` after corrections.
+
 ## Scope and Clarification
 
 - Identify the requested outcome, constraints, and success criteria before coding.
@@ -20,6 +26,7 @@ Use this prompt for software application development tasks across web, mobile, b
 - Keep implementations simple, modular, and easy to review.
 - Avoid unnecessary abstractions and speculative features.
 - Preserve backward compatibility unless a breaking change is explicitly requested.
+- If a fix feels hacky, apply the principle: "Knowing everything I know now, implement the elegant solution." Never settle for a workaround when a clean solution is achievable.
 
 ## Quality Requirements
 
@@ -27,6 +34,14 @@ Use this prompt for software application development tasks across web, mobile, b
 - Run relevant validation steps (tests, linting, type checks, build) before completion.
 - If validation cannot be executed, state what was not run and why.
 - Include error handling, edge-case coverage, and sensible defaults.
+- Diff behavior between main and your changes when relevant; demonstrate correctness before marking work complete.
+
+## Autonomous Bug Fixing
+
+- When given a bug report: just fix it. Do not ask for hand-holding.
+- Point at logs, errors, and failing tests — then resolve them.
+- Zero context switching required from the user.
+- Go fix failing CI tests without being told how.
 
 ## Security and Reliability
 
@@ -53,29 +68,6 @@ Use this prompt for software application development tasks across web, mobile, b
 - Update `README.md` when delivered changes are relevant to existing README content.
 - Record key decisions, assumptions, and tradeoffs in concise notes.
 - Ensure another engineer can understand what changed and why without extra context.
-
-## Verification Before Done
-
-- Diff behavior between main and your changes when relevant.
-- Run tests, check logs, demonstrate correctness before marking work complete.
-
-## Demand Elegance
-
-- If a fix feels hacky, apply the principle: "Knowing everything I know now, implement the elegant solution."
-- Never settle for a workaround when a clean solution is achievable.
-
-## Autonomous Bug Fixing
-
-- When given a bug report: just fix it. Do not ask for hand-holding.
-- Point at logs, errors, and failing tests — then resolve them.
-- Zero context switching required from the user.
-- Go fix failing CI tests without being told how.
-
-## Task Management
-
-- Write plan to `.prompt-hub/todo.md`.
-- Add a review section to `.prompt-hub/todo.md` when done.
-- Update `.prompt-hub/lessons.md` after corrections.
 
 ## Completion Contract
 
