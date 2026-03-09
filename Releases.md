@@ -2,9 +2,10 @@
 
 Auto-generated release notes by CI on each update of `main`.
 
-## 1.1.12 (2026-03-09)
+## 1.1.13 (2026-03-09)
 
 ### Added
+- add new note modal and file creation in default folder
 - add every 2 months recurrence option in task creation
 - support every N recurrence units
 - insert recurring next task directly below source line
