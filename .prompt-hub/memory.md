@@ -5,3 +5,7 @@
 2026-03-09 17:30:50 +0100 | tool | validation run: swift build success; swift test failed due to missing XCTest module in environment | commands: swift build; swift test --filter ... | partial | next: run tests in environment with XCTest available
 2026-03-09 17:31:24 +0100 | tool | attempted prompt-hub release note update; shell interpreted backticks causing malformed entry | command: cat >> .prompt-hub/releases.md | failed | next: rewrite last release entry safely
 2026-03-09 17:31:37 +0100 | tool | rewrote malformed .prompt-hub/releases.md 0.0.1 entry with correct markdown content | files: .prompt-hub/releases.md | success | next: commit and push
+2026-03-09 17:38:50 +0100 | agent | planned plain-text paste update for note text editors | files: .prompt-hub/todo.md | success | next: patch NSTextView config
+2026-03-09 17:39:18 +0100 | agent | enforced plain-text paste behavior in note editors and validated build | files: src/app/StatusBarController.swift,.prompt-hub/todo.md | success | next: bump prompt-hub version and commit/push
+2026-03-09 17:39:36 +0100 | tool | release entry append failed due to unescaped backticks in shell heredoc | command: cat >> .prompt-hub/releases.md | failed | next: rewrite malformed 0.0.2 entry safely
+2026-03-09 17:39:47 +0100 | tool | fixed malformed .prompt-hub/releases.md 0.0.2 changed line text | files: .prompt-hub/releases.md | success | next: commit and push

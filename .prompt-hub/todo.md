@@ -1,21 +1,12 @@
 # Todo
 
 ## Plan
-- [x] Ajouter l’action/menu `New note` sous `Task` dans le dropdown.
-- [x] Ajouter une modale `New note` avec titre éditable prérempli au format `yyyy-MM-dd - ` et un champ de contenu multi-ligne.
-- [x] Implémenter la création d’un fichier `.md` dans le `default note folder` configuré.
-- [x] Couvrir le changement avec des tests unitaires/intégration.
-- [x] Exécuter les validations pertinentes et vérifier l’état git.
+- [x] Forcer le champ texte de la modale `New note` en mode texte brut (paste sans mise en forme).
+- [x] Appliquer le même comportement au champ `Quick Note` pour cohérence UX.
+- [x] Compiler pour valider les changements.
+- [x] Mettre à jour la section review et la mémoire.
 
 ## Review
-- Ajout d’une nouvelle action `New note` dans le menu status bar et dans l’API `StatusAction`.
-- Ajout d’une modale dédiée avec champ titre prérempli (`yyyy-MM-dd - `) et éditeur de contenu.
-- Ajout de `CaptureWindowController.submitStandaloneNote(...)` et `suggestedNewNoteTitlePrefix()`.
-- Ajout de `DailyNoteWriter.createNoteFile(...)` avec sanitization du nom de fichier, extension `.md`, et suffixe auto (`(2)`, `(3)`, ...) en cas de collision.
-- Tests ajoutés/ajustés:
-  - `tests/unit/CaptureWindowControllerTests.swift`
-  - `tests/integration/StatusBarControllerIntegrationTests.swift`
-  - `tests/contract/MenuAvailabilityContractTests.swift`
-- Validation:
-  - `swift build` ✅
-  - `swift test ...` ❌ bloqué par l’environnement (`no such module 'XCTest'`).
+- `NSTextView` de `New note` et `Quick Note` configurés en texte brut (`isRichText = false`, `importsGraphics = false`).
+- Substitutions automatiques désactivées pour préserver le contenu collé tel quel.
+- Validation: `swift build` OK.

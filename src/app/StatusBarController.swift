@@ -669,6 +669,13 @@ public final class StatusBarController: NSObject {
         textView.isHorizontallyResizable = false
         textView.autoresizingMask = [.width]
         textView.font = NSFont.systemFont(ofSize: CGFloat(profile.typography.input), weight: .regular)
+        textView.isRichText = false
+        textView.importsGraphics = false
+        textView.isAutomaticQuoteSubstitutionEnabled = false
+        textView.isAutomaticDashSubstitutionEnabled = false
+        textView.isAutomaticTextReplacementEnabled = false
+        textView.isAutomaticSpellingCorrectionEnabled = false
+        textView.smartInsertDeleteEnabled = false
         textView.textContainerInset = NSSize(width: 10, height: 10)
         textView.textContainer?.lineFragmentPadding = 6
         textView.string = ""
@@ -981,6 +988,13 @@ public final class StatusBarController: NSObject {
         textView.isHorizontallyResizable = false
         textView.autoresizingMask = [.width]
         textView.font = NSFont.systemFont(ofSize: CGFloat(profile.typography.input), weight: .regular)
+        textView.isRichText = false
+        textView.importsGraphics = false
+        textView.isAutomaticQuoteSubstitutionEnabled = false
+        textView.isAutomaticDashSubstitutionEnabled = false
+        textView.isAutomaticTextReplacementEnabled = false
+        textView.isAutomaticSpellingCorrectionEnabled = false
+        textView.smartInsertDeleteEnabled = false
         textView.textContainerInset = NSSize(width: 10, height: 10)
         textView.textContainer?.lineFragmentPadding = 6
         textView.string = ""

@@ -82,3 +82,9 @@ Auto-generated release notes by CI on each update of `main`.
 ### Changed
 - Extend capture/state flow with `newNoteEnabled` and `StatusAction.newNote`.
 - Add tests for new note behavior and availability state.
+
+## 0.0.2 (2026-03-09)
+
+### Changed
+- Force plain-text paste mode in New note and Quick Note text editors (no rich formatting).
+- Disable smart substitutions so pasted content stays raw.
