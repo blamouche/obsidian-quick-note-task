@@ -2,7 +2,7 @@
 
 Auto-generated release notes by CI on each update of `main`.
 
-## 1.1.11 (2026-03-09)
+## 1.1.12 (2026-03-09)
 
 ### Added
 - add every 2 months recurrence option in task creation
