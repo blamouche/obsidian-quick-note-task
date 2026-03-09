@@ -2,7 +2,7 @@
 
 Auto-generated release notes by CI on each update of `main`.
 
-## 1.1.14 (2026-03-09)
+## 1.1.15 (2026-03-09)
 
 ### Added
 - add new note modal and file creation in default folder
