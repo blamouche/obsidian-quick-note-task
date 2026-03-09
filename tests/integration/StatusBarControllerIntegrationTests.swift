@@ -36,6 +36,7 @@ final class StatusBarControllerIntegrationTests: XCTestCase {
         XCTAssertEqual(state.statusKind, .setupRequired)
         XCTAssertFalse(state.quickNoteEnabled)
         XCTAssertFalse(state.taskEnabled)
+        XCTAssertFalse(state.newNoteEnabled)
         XCTAssertTrue(state.statusMessage.contains("Setup required"))
     }
 
@@ -49,6 +50,7 @@ final class StatusBarControllerIntegrationTests: XCTestCase {
         XCTAssertEqual(state.statusKind, .ready)
         XCTAssertTrue(state.quickNoteEnabled)
         XCTAssertTrue(state.taskEnabled)
+        XCTAssertTrue(state.newNoteEnabled)
     }
 
     func testInvalidDestinationAfterPriorValidSetupRequiresRecovery() throws {
@@ -61,6 +63,7 @@ final class StatusBarControllerIntegrationTests: XCTestCase {
         XCTAssertEqual(state.statusKind, .recoveryRequired)
         XCTAssertFalse(state.quickNoteEnabled)
         XCTAssertFalse(state.taskEnabled)
+        XCTAssertFalse(state.newNoteEnabled)
         XCTAssertTrue(state.statusMessage.contains("Default folder invalid"))
     }
 
@@ -82,6 +85,36 @@ final class StatusBarControllerIntegrationTests: XCTestCase {
 
         XCTAssertNil(capture.lastErrorMessage)
         XCTAssertNotNil(capture.lastOutputFile)
+    }
+
+    func testNewNoteActionBlockedWhenSettingsInvalid() {
+        let (status, capture, _) = makeControllers(suite: "test.status.newnote.blocked.\(UUID().uuidString)")
+
+        status.handle(.newNote)
+
+        XCTAssertNotNil(capture.lastErrorMessage)
+        XCTAssertTrue(capture.lastErrorMessage?.contains("Vault") ?? false)
+    }
+
+    func testNewNoteActionCreatesMarkdownFileInDefaultFolder() throws {
+        let fixedDate = ISO8601DateFormatter().date(from: "2026-03-09T10:00:00Z")!
+        let suite = "test.status.newnote.create.\(UUID().uuidString)"
+        let defaults = UserDefaults(suiteName: suite)!
+        defaults.removePersistentDomain(forName: suite)
+        let store = DestinationStore(defaults: defaults, key: "destination")
+        let capture = CaptureWindowController(destinationStore: store,
+                                              writer: DailyNoteWriter(),
+                                              dateProvider: FixedDateProvider(fixedDate))
+        let settings = SettingsController(destinationStore: store)
+        let status = StatusBarController(captureController: capture, settingsController: settings)
+        let folder = try configureValidSettings(settings)
+
+        status.handle(.newNote)
+
+        let output = try XCTUnwrap(capture.lastOutputFile)
+        XCTAssertTrue(output.path.hasPrefix(folder.path))
+        XCTAssertEqual(output.pathExtension, "md")
+        XCTAssertEqual(output.lastPathComponent, "2026-03-09 - New note.md")
     }
 
     func testQuickNoteVisualProfileProvidesReadableHierarchy() {

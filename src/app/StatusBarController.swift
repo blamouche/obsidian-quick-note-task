@@ -20,6 +20,7 @@ extension StatusBarController: NSMenuDelegate {
 public struct CaptureAvailabilityState: Equatable {
     public let quickNoteEnabled: Bool
     public let taskEnabled: Bool
+    public let newNoteEnabled: Bool
     public let statusKind: AppStatusKind
     public let statusMessage: String
     public let settingsTitle: String
@@ -28,6 +29,7 @@ public struct CaptureAvailabilityState: Equatable {
 
     public init(quickNoteEnabled: Bool,
                 taskEnabled: Bool,
+                newNoteEnabled: Bool,
                 statusKind: AppStatusKind,
                 statusMessage: String,
                 settingsTitle: String,
@@ -35,6 +37,7 @@ public struct CaptureAvailabilityState: Equatable {
                 visualRole: UIStateRole) {
         self.quickNoteEnabled = quickNoteEnabled
         self.taskEnabled = taskEnabled
+        self.newNoteEnabled = newNoteEnabled
         self.statusKind = statusKind
         self.statusMessage = statusMessage
         self.settingsTitle = settingsTitle
@@ -46,6 +49,7 @@ public struct CaptureAvailabilityState: Equatable {
     public enum StatusAction {
         case quickNote
         case task
+        case newNote
         case settings
         case github
     }
@@ -96,6 +100,7 @@ public final class StatusBarController: NSObject {
     private var menuStatusItem: NSMenuItem?
     private var menuQuickNoteItem: NSMenuItem?
     private var menuTaskItem: NSMenuItem?
+    private var menuNewNoteItem: NSMenuItem?
     private var menuTasksDividerTop: NSMenuItem?
     private var menuTasksDividerBottom: NSMenuItem?
     private var menuDropdownTaskItems: [NSMenuItem] = []
@@ -137,12 +142,14 @@ public final class StatusBarController: NSObject {
         menu.addItem(.separator())
         let quickNoteEntry = NSMenuItem(title: "Quick Note", action: #selector(onQuickNote), keyEquivalent: "n")
         let taskEntry = NSMenuItem(title: "Task", action: #selector(onTask), keyEquivalent: "t")
+        let newNoteEntry = NSMenuItem(title: "New note", action: #selector(onNewNote), keyEquivalent: "m")
         let settingsEntry = NSMenuItem(title: "Settings", action: #selector(onSettings), keyEquivalent: ",")
         let githubEntry = NSMenuItem(title: "Github", action: #selector(onGithub), keyEquivalent: "g")
         let tasksDividerTop = NSMenuItem.separator()
         let tasksDividerBottom = NSMenuItem.separator()
         menu.addItem(quickNoteEntry)
         menu.addItem(taskEntry)
+        menu.addItem(newNoteEntry)
         menu.addItem(tasksDividerTop)
         menu.addItem(tasksDividerBottom)
         menu.addItem(settingsEntry)
@@ -160,6 +167,7 @@ public final class StatusBarController: NSObject {
         menuStatusItem = statusEntry
         menuQuickNoteItem = quickNoteEntry
         menuTaskItem = taskEntry
+        menuNewNoteItem = newNoteEntry
         menuTasksDividerTop = tasksDividerTop
         menuTasksDividerBottom = tasksDividerBottom
         menuSettingsItem = settingsEntry
@@ -185,6 +193,7 @@ public final class StatusBarController: NSObject {
         menuStatusItem?.title = "\(state.statusMessage) • \(appVersionLabel)"
         menuQuickNoteItem?.isEnabled = state.quickNoteEnabled
         menuTaskItem?.isEnabled = state.taskEnabled
+        menuNewNoteItem?.isEnabled = state.newNoteEnabled
         menuSettingsItem?.title = state.settingsTitle
         rebuildDropdownTaskSection()
         #endif
@@ -215,6 +224,14 @@ public final class StatusBarController: NSObject {
                 return
             }
             _ = captureController.submitTask(title: "Task capture placeholder", dueDate: nil)
+        case .newNote:
+            guard state.newNoteEnabled else {
+                _ = captureController.rejectUnavailableAction(draft: "New note capture placeholder",
+                                                              reason: state.blockedReason ?? state.statusMessage)
+                return
+            }
+            let title = captureController.suggestedNewNoteTitlePrefix() + "New note"
+            _ = captureController.submitStandaloneNote(title: title, content: "")
         case .settings:
             _ = settingsController.currentDestination()
         case .github:
@@ -240,6 +257,7 @@ public final class StatusBarController: NSObject {
             return CaptureAvailabilityState(
                 quickNoteEnabled: true,
                 taskEnabled: true,
+                newNoteEnabled: true,
                 statusKind: .ready,
                 statusMessage: "[Available] Ready: vault and folder are configured.",
                 settingsTitle: "Settings...",
@@ -250,6 +268,7 @@ public final class StatusBarController: NSObject {
             return CaptureAvailabilityState(
                 quickNoteEnabled: false,
                 taskEnabled: false,
+                newNoteEnabled: false,
                 statusKind: .setupRequired,
                 statusMessage: "[Unavailable] Setup required: choose an Obsidian vault.",
                 settingsTitle: "Configure Settings...",
@@ -260,6 +279,7 @@ public final class StatusBarController: NSObject {
             return CaptureAvailabilityState(
                 quickNoteEnabled: false,
                 taskEnabled: false,
+                newNoteEnabled: false,
                 statusKind: .recoveryRequired,
                 statusMessage: "[Unavailable] Vault unavailable: reconfiguration required.",
                 settingsTitle: "Reconfigure Settings...",
@@ -270,6 +290,7 @@ public final class StatusBarController: NSObject {
             return CaptureAvailabilityState(
                 quickNoteEnabled: false,
                 taskEnabled: false,
+                newNoteEnabled: false,
                 statusKind: .setupRequired,
                 statusMessage: "[Unavailable] Setup required: choose a default folder.",
                 settingsTitle: "Configure Settings...",
@@ -280,6 +301,7 @@ public final class StatusBarController: NSObject {
             return CaptureAvailabilityState(
                 quickNoteEnabled: false,
                 taskEnabled: false,
+                newNoteEnabled: false,
                 statusKind: .recoveryRequired,
                 statusMessage: "[Unavailable] Default folder invalid: reconfiguration required.",
                 settingsTitle: "Reconfigure Settings...",
@@ -865,6 +887,151 @@ public final class StatusBarController: NSObject {
                 dueDatePicker.isEnabled = false
                 recurrenceToggle.isEnabled = false
                 recurrencePicker.isEnabled = false
+                DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
+                    NSApp.stopModal(withCode: .OK)
+                    panel.orderOut(nil)
+                    self.activeModalActionHandler = nil
+                }
+            } else {
+                statusLabel.stringValue = self.captureController.lastErrorMessage ?? "Unknown error"
+                statusLabel.textColor = NSColor.systemRed
+            }
+        }
+
+        addButton.target = actionHandler
+        addButton.action = #selector(InlineModalActionHandler.handlePrimary(_:))
+        cancelButton.target = actionHandler
+        cancelButton.action = #selector(InlineModalActionHandler.handleSecondary(_:))
+
+        NSApp.activate(ignoringOtherApps: true)
+        panel.makeKeyAndOrderFront(nil)
+        _ = NSApp.runModal(for: panel)
+    }
+
+    @objc private func onNewNote() {
+        let state = currentAvailabilityState()
+        guard state.newNoteEnabled else {
+            showError("Action unavailable", detail: state.blockedReason ?? state.statusMessage)
+            return
+        }
+
+        let profile = captureController.visualProfile()
+        let width: CGFloat = 640
+        let height: CGFloat = 430
+        let inset = CGFloat(profile.spacing.windowPadding)
+        let fieldGap = CGFloat(profile.spacing.fieldGap)
+        let panel = makeModalPanel(title: "New note", width: width, height: height)
+        let container = WindowBackgroundView(frame: NSRect(x: 0, y: 0, width: width, height: height))
+        panel.contentView = container
+
+        let titleLabel = makeTextLabel(
+            "Note title",
+            size: CGFloat(profile.typography.label),
+            weight: .medium,
+            color: .labelColor
+        )
+        titleLabel.frame = NSRect(x: inset, y: height - inset - 20, width: width - (inset * 2), height: 18)
+
+        let titleFieldContainer = NSView(frame: NSRect(x: inset, y: titleLabel.frame.minY - fieldGap - 40, width: width - (inset * 2), height: 40))
+        titleFieldContainer.wantsLayer = true
+        titleFieldContainer.layer?.backgroundColor = NSColor.white.cgColor
+        titleFieldContainer.layer?.cornerRadius = 9
+        titleFieldContainer.layer?.borderWidth = 1
+        titleFieldContainer.layer?.borderColor = NSColor.separatorColor.cgColor
+
+        let titleField = NSTextField(frame: NSRect(x: 10, y: 6, width: titleFieldContainer.frame.width - 20, height: 28))
+        titleField.font = NSFont.systemFont(ofSize: CGFloat(profile.typography.input), weight: .regular)
+        titleField.placeholderString = "yyyy-MM-dd - My note title"
+        titleField.stringValue = captureController.suggestedNewNoteTitlePrefix()
+        titleField.isBordered = false
+        titleField.isBezeled = false
+        titleField.drawsBackground = false
+        titleField.focusRingType = .none
+        titleFieldContainer.addSubview(titleField)
+
+        let contentLabel = makeTextLabel(
+            "Content",
+            size: CGFloat(profile.typography.label),
+            weight: .medium,
+            color: .labelColor
+        )
+        contentLabel.frame = NSRect(x: inset, y: titleFieldContainer.frame.minY - CGFloat(profile.spacing.sectionGap) - 20, width: width - (inset * 2), height: 18)
+
+        let buttonHeight: CGFloat = 30
+        let statusHeight: CGFloat = 18
+        let buttonsY = inset
+        let statusY = buttonsY + buttonHeight + 10
+        let editorY = statusY + statusHeight + 10
+        let editorHeight = contentLabel.frame.minY - fieldGap - editorY
+        let scrollView = NSScrollView(frame: NSRect(
+            x: inset,
+            y: editorY,
+            width: width - (inset * 2),
+            height: editorHeight
+        ))
+        scrollView.hasVerticalScroller = true
+        scrollView.borderType = .bezelBorder
+        scrollView.wantsLayer = true
+        scrollView.layer?.cornerRadius = 10
+        scrollView.layer?.borderWidth = 1
+        scrollView.layer?.borderColor = NSColor.separatorColor.cgColor
+
+        let textView = NSTextView(frame: NSRect(x: 0, y: 0, width: scrollView.frame.width, height: scrollView.frame.height))
+        textView.isVerticallyResizable = true
+        textView.isHorizontallyResizable = false
+        textView.autoresizingMask = [.width]
+        textView.font = NSFont.systemFont(ofSize: CGFloat(profile.typography.input), weight: .regular)
+        textView.textContainerInset = NSSize(width: 10, height: 10)
+        textView.textContainer?.lineFragmentPadding = 6
+        textView.string = ""
+        textView.insertionPointColor = .controlAccentColor
+
+        let statusLabel = makeTextLabel(
+            "",
+            size: CGFloat(profile.typography.label),
+            weight: .regular,
+            color: .secondaryLabelColor
+        )
+        statusLabel.frame = NSRect(x: inset, y: statusY, width: width - (inset * 2), height: statusHeight)
+
+        let addButton = NSButton(title: "Add", target: nil, action: nil)
+        addButton.bezelStyle = .rounded
+        addButton.keyEquivalent = "\r"
+        addButton.frame = NSRect(x: width - inset - 100, y: buttonsY, width: 100, height: buttonHeight)
+
+        let cancelButton = NSButton(title: "Cancel", target: nil, action: nil)
+        cancelButton.bezelStyle = .rounded
+        cancelButton.keyEquivalent = "\u{1b}"
+        cancelButton.frame = NSRect(x: addButton.frame.minX - 110, y: buttonsY, width: 100, height: buttonHeight)
+
+        scrollView.documentView = textView
+        container.addSubview(titleLabel)
+        container.addSubview(titleFieldContainer)
+        container.addSubview(contentLabel)
+        container.addSubview(scrollView)
+        container.addSubview(statusLabel)
+        container.addSubview(cancelButton)
+        container.addSubview(addButton)
+
+        let actionHandler = InlineModalActionHandler()
+        activeModalActionHandler = actionHandler
+
+        actionHandler.onSecondary = { [weak self, weak panel] in
+            guard let self, let panel else { return }
+            NSApp.stopModal(withCode: .cancel)
+            panel.orderOut(nil)
+            self.activeModalActionHandler = nil
+        }
+
+        actionHandler.onPrimary = { [weak self, weak panel, weak addButton, weak cancelButton] in
+            guard let self, let panel, let addButton, let cancelButton else { return }
+            if self.captureController.submitStandaloneNote(title: titleField.stringValue, content: textView.string) {
+                statusLabel.stringValue = "Added successfully. Closing..."
+                statusLabel.textColor = NSColor.systemGreen
+                addButton.isEnabled = false
+                cancelButton.isEnabled = false
+                titleField.isEnabled = false
+                textView.isEditable = false
                 DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
                     NSApp.stopModal(withCode: .OK)
                     panel.orderOut(nil)

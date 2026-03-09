@@ -34,6 +34,15 @@ public final class CaptureWindowController {
         self.logger = logger
     }
 
+    private static let noteTitleDateFormatter: DateFormatter = {
+        let formatter = DateFormatter()
+        formatter.calendar = Calendar(identifier: .gregorian)
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        formatter.timeZone = .current
+        formatter.dateFormat = "yyyy-MM-dd"
+        return formatter
+    }()
+
     public func visualProfile() -> CaptureVisualProfile {
         CaptureVisualProfile(
             typography: UIStyle.typography,
@@ -105,6 +114,34 @@ public final class CaptureWindowController {
             lastErrorMessage = error.localizedDescription
             preservedDraft = title
             logger.error("Task validation failed: \(error.localizedDescription), draft=\(logger.redact(title))")
+            return false
+        }
+    }
+
+    public func suggestedNewNoteTitlePrefix() -> String {
+        "\(Self.noteTitleDateFormatter.string(from: dateProvider.now())) - "
+    }
+
+    @discardableResult
+    public func submitStandaloneNote(title: String, content: String) -> Bool {
+        guard let destination = destinationStore.loadDestinationURL() else {
+            lastErrorMessage = "Destination folder is not configured."
+            preservedDraft = title
+            logger.error("New note blocked: destination not configured, title=\(logger.redact(title))")
+            return false
+        }
+
+        do {
+            let file = try writer.createNoteFile(title: title, content: content, destinationDirectory: destination)
+            lastOutputFile = file
+            lastErrorMessage = nil
+            preservedDraft = nil
+            logger.info("Standalone note created at \(file.path)")
+            return true
+        } catch {
+            lastErrorMessage = error.localizedDescription
+            preservedDraft = title
+            logger.error("Standalone note creation failed: \(error.localizedDescription), title=\(logger.redact(title))")
             return false
         }
     }

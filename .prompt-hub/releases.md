@@ -71,3 +71,14 @@ Auto-generated release notes by CI on each update of `main`.
 - add task date picker UI and renumber spec to 002
 - implement macOS menubar Obsidian quick note/task flow
 
+
+
+## 0.0.1 (2026-03-09)
+
+### Added
+- Add `New note` action in menu, with modal (editable title prefilled as `yyyy-MM-dd - ` + content editor).
+- Create standalone markdown notes in configured `default note folder`.
+
+### Changed
+- Extend capture/state flow with `newNoteEnabled` and `StatusAction.newNote`.
+- Add tests for new note behavior and availability state.

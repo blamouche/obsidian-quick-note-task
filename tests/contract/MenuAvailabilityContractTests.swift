@@ -25,6 +25,7 @@ final class MenuAvailabilityContractTests: XCTestCase {
 
         XCTAssertFalse(state.quickNoteEnabled)
         XCTAssertFalse(state.taskEnabled)
+        XCTAssertFalse(state.newNoteEnabled)
         XCTAssertEqual(state.statusKind, .setupRequired)
         XCTAssertEqual(state.settingsTitle, "Configure Settings...")
     }
@@ -40,6 +41,7 @@ final class MenuAvailabilityContractTests: XCTestCase {
 
         XCTAssertTrue(state.quickNoteEnabled)
         XCTAssertTrue(state.taskEnabled)
+        XCTAssertTrue(state.newNoteEnabled)
         XCTAssertEqual(state.statusKind, .ready)
     }
 
@@ -55,6 +57,7 @@ final class MenuAvailabilityContractTests: XCTestCase {
 
         XCTAssertFalse(state.quickNoteEnabled)
         XCTAssertFalse(state.taskEnabled)
+        XCTAssertFalse(state.newNoteEnabled)
         XCTAssertEqual(state.statusKind, .recoveryRequired)
         XCTAssertEqual(state.settingsTitle, "Reconfigure Settings...")
     }

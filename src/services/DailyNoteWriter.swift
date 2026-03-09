@@ -4,6 +4,7 @@ public enum DailyNoteWriterError: Error, LocalizedError {
     case invalidDestination
     case invalidVaultScope
     case staleTaskReference
+    case invalidFileName
     case unableToCreateFile
     case unableToReadFile
     case unableToWriteFile
@@ -16,6 +17,8 @@ public enum DailyNoteWriterError: Error, LocalizedError {
             return "Operation is outside the configured vault scope."
         case .staleTaskReference:
             return "Task reference is stale and no longer matches markdown content."
+        case .invalidFileName:
+            return "Note title cannot be converted to a valid file name."
         case .unableToCreateFile:
             return "Unable to create daily note file."
         case .unableToReadFile:
@@ -49,6 +52,32 @@ public final class DailyNoteWriter {
         let normalizedTitle = try Validation.validateTaskTitle(title)
         let rendered = formatter.formatTask(title: normalizedTitle, dueDate: dueDate, recurrenceRule: recurrenceRule)
         return try appendRendered(rendered, destinationDirectory: destinationDirectory, date: date)
+    }
+
+    public func createNoteFile(title: String,
+                               content: String,
+                               destinationDirectory: URL) throws -> URL {
+        let normalizedTitle = try Validation.validateTaskTitle(title)
+        var isDirectory: ObjCBool = false
+        guard FileManager.default.fileExists(atPath: destinationDirectory.path, isDirectory: &isDirectory), isDirectory.boolValue else {
+            throw DailyNoteWriterError.invalidDestination
+        }
+
+        let safeBaseName = sanitizeFileName(normalizedTitle)
+        guard !safeBaseName.isEmpty else {
+            throw DailyNoteWriterError.invalidFileName
+        }
+
+        let targetURL = uniqueNoteURL(baseName: safeBaseName, destinationDirectory: destinationDirectory)
+        let payload = content.data(using: .utf8) ?? Data()
+
+        do {
+            try payload.write(to: targetURL, options: .atomic)
+        } catch {
+            throw DailyNoteWriterError.unableToWriteFile
+        }
+
+        return targetURL
     }
 
     public func replaceTaskLine(fileURL: URL,
@@ -207,5 +236,29 @@ public final class DailyNoteWriter {
         }
 
         return targetURL
+    }
+
+    private func sanitizeFileName(_ raw: String) -> String {
+        let forbidden = CharacterSet(charactersIn: "/:\\?%*|\"<>")
+        let replaced = raw.unicodeScalars.map { forbidden.contains($0) ? "-" : Character($0) }
+        let collapsed = String(replaced).replacingOccurrences(of: "\\s+", with: " ", options: .regularExpression)
+        return collapsed.trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
+    private func uniqueNoteURL(baseName: String, destinationDirectory: URL) -> URL {
+        let fileManager = FileManager.default
+        var candidate = destinationDirectory.appendingPathComponent("\(baseName).md")
+        if !fileManager.fileExists(atPath: candidate.path) {
+            return candidate
+        }
+
+        var index = 2
+        while true {
+            candidate = destinationDirectory.appendingPathComponent("\(baseName) (\(index)).md")
+            if !fileManager.fileExists(atPath: candidate.path) {
+                return candidate
+            }
+            index += 1
+        }
     }
 }
