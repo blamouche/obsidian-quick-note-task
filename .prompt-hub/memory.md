@@ -9,3 +9,5 @@
 2026-03-09 17:39:18 +0100 | agent | enforced plain-text paste behavior in note editors and validated build | files: src/app/StatusBarController.swift,.prompt-hub/todo.md | success | next: bump prompt-hub version and commit/push
 2026-03-09 17:39:36 +0100 | tool | release entry append failed due to unescaped backticks in shell heredoc | command: cat >> .prompt-hub/releases.md | failed | next: rewrite malformed 0.0.2 entry safely
 2026-03-09 17:39:47 +0100 | tool | fixed malformed .prompt-hub/releases.md 0.0.2 changed line text | files: .prompt-hub/releases.md | success | next: commit and push
+2026-03-09 17:40:39 +0100 | agent | planned keyboard paste shortcut support for plain-text editors | files: .prompt-hub/todo.md | success | next: patch StatusBarController keyboard handling
+2026-03-09 17:44:37 +0100 | agent | added explicit Cmd+V handling for plain-text paste in Quick Note/New note modals; build ok | files: src/app/StatusBarController.swift,.prompt-hub/todo.md | success | next: bump prompt-hub version, update releases, commit/push

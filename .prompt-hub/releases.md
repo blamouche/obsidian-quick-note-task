@@ -88,3 +88,9 @@ Auto-generated release notes by CI on each update of `main`.
 ### Changed
 - Force plain-text paste mode in New note and Quick Note text editors (no rich formatting).
 - Disable smart substitutions so pasted content stays raw.
+
+## 0.0.3 (2026-03-09)
+
+### Changed
+- Enable Cmd+V shortcut in New note and Quick Note modal editors.
+- Route paste shortcut to plain-text paste to keep content unformatted.

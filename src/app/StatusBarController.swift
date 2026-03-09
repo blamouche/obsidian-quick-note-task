@@ -108,6 +108,7 @@ public final class StatusBarController: NSObject {
     private var menuDropdownTaskViewsByID: [String: NSView] = [:]
     private var menuSettingsItem: NSMenuItem?
     private var menuGithubItem: NSMenuItem?
+    private var activeModalPasteMonitor: Any?
     #endif
 
     public init(captureController: CaptureWindowController = .init(),
@@ -708,12 +709,14 @@ public final class StatusBarController: NSObject {
         container.addSubview(addButton)
         let actionHandler = InlineModalActionHandler()
         activeModalActionHandler = actionHandler
+        installPlainTextPasteShortcut(for: panel, textView: textView)
 
         actionHandler.onSecondary = { [weak self, weak panel] in
             guard let self, let panel else { return }
             NSApp.stopModal(withCode: .cancel)
             panel.orderOut(nil)
             self.activeModalActionHandler = nil
+            self.removePlainTextPasteShortcut()
         }
 
         actionHandler.onPrimary = { [weak self, weak panel, weak addButton, weak cancelButton] in
@@ -728,6 +731,7 @@ public final class StatusBarController: NSObject {
                     NSApp.stopModal(withCode: .OK)
                     panel.orderOut(nil)
                     self.activeModalActionHandler = nil
+                    self.removePlainTextPasteShortcut()
                 }
             } else {
                 statusLabel.stringValue = self.captureController.lastErrorMessage ?? "Unknown error"
@@ -743,6 +747,7 @@ public final class StatusBarController: NSObject {
         NSApp.activate(ignoringOtherApps: true)
         panel.makeKeyAndOrderFront(nil)
         _ = NSApp.runModal(for: panel)
+        removePlainTextPasteShortcut()
     }
 
     @objc private func onTask() {
@@ -1029,12 +1034,14 @@ public final class StatusBarController: NSObject {
 
         let actionHandler = InlineModalActionHandler()
         activeModalActionHandler = actionHandler
+        installPlainTextPasteShortcut(for: panel, textView: textView)
 
         actionHandler.onSecondary = { [weak self, weak panel] in
             guard let self, let panel else { return }
             NSApp.stopModal(withCode: .cancel)
             panel.orderOut(nil)
             self.activeModalActionHandler = nil
+            self.removePlainTextPasteShortcut()
         }
 
         actionHandler.onPrimary = { [weak self, weak panel, weak addButton, weak cancelButton] in
@@ -1050,6 +1057,7 @@ public final class StatusBarController: NSObject {
                     NSApp.stopModal(withCode: .OK)
                     panel.orderOut(nil)
                     self.activeModalActionHandler = nil
+                    self.removePlainTextPasteShortcut()
                 }
             } else {
                 statusLabel.stringValue = self.captureController.lastErrorMessage ?? "Unknown error"
@@ -1065,6 +1073,7 @@ public final class StatusBarController: NSObject {
         NSApp.activate(ignoringOtherApps: true)
         panel.makeKeyAndOrderFront(nil)
         _ = NSApp.runModal(for: panel)
+        removePlainTextPasteShortcut()
     }
 
     private func makeModalPanel(title: String, width: CGFloat, height: CGFloat) -> NSPanel {
@@ -1079,6 +1088,42 @@ public final class StatusBarController: NSObject {
         panel.level = .modalPanel
         panel.center()
         return panel
+    }
+
+    private func installPlainTextPasteShortcut(for panel: NSPanel, textView: NSTextView) {
+        removePlainTextPasteShortcut()
+        activeModalPasteMonitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { [weak panel, weak textView] event in
+            guard let panel, let textView else {
+                return event
+            }
+
+            guard panel.isVisible, NSApp.keyWindow === panel else {
+                return event
+            }
+
+            let modifiers = event.modifierFlags.intersection(.deviceIndependentFlagsMask)
+            let isPasteShortcut = modifiers == [.command]
+                && event.charactersIgnoringModifiers?.lowercased() == "v"
+
+            guard isPasteShortcut else {
+                return event
+            }
+
+            guard let firstResponder = panel.firstResponder, firstResponder === textView else {
+                return event
+            }
+
+            textView.pasteAsPlainText(nil)
+            return nil
+        }
+    }
+
+    private func removePlainTextPasteShortcut() {
+        guard let activeModalPasteMonitor else {
+            return
+        }
+        NSEvent.removeMonitor(activeModalPasteMonitor)
+        self.activeModalPasteMonitor = nil
     }
 
     @objc private func onToggleDueDate(_ sender: NSButton) {

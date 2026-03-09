@@ -1,12 +1,13 @@
 # Todo
 
 ## Plan
-- [x] Forcer le champ texte de la modale `New note` en mode texte brut (paste sans mise en forme).
-- [x] Appliquer le même comportement au champ `Quick Note` pour cohérence UX.
-- [x] Compiler pour valider les changements.
-- [x] Mettre à jour la section review et la mémoire.
+- [x] Ajouter la gestion du raccourci clavier `⌘V` dans les modales `Quick Note` et `New note`.
+- [x] Garder le collage en texte brut (sans style) lors de ce raccourci.
+- [x] Compiler l’app pour valider.
+- [x] Mettre à jour traçabilité `.prompt-hub`.
 
 ## Review
-- `NSTextView` de `New note` et `Quick Note` configurés en texte brut (`isRichText = false`, `importsGraphics = false`).
-- Substitutions automatiques désactivées pour préserver le contenu collé tel quel.
+- Ajout d’un monitor clavier local pendant les modales `Quick Note` et `New note`.
+- `⌘V` déclenche explicitement `pasteAsPlainText` sur le `NSTextView` actif.
+- Nettoyage du monitor à la fermeture/validation/annulation de la modale.
 - Validation: `swift build` OK.
